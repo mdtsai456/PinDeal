@@ -25,6 +25,10 @@ export function youBoardCopy(order: number): string {
   return `You board ${order}${ordinalSuffix(order)}.`
 }
 
+export function youAreNthRiderCopy(name: string, order: number): string {
+  return `${name}, you are the ${order}${ordinalSuffix(order)} rider.`
+}
+
 export function walkToSharedPickupCopy(): string {
   return 'Walk to the shared pickup.'
 }

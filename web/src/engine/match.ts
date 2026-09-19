@@ -3,6 +3,7 @@ import type { RiderDemand, RiderId, StructuredDemand, Username } from '../types.
 import { haversineKm } from './corridor.ts'
 import { parseDemand } from './parse.ts'
 import { snapshotRoutePage, type RoutePageSnapshot } from './routePage.ts'
+import { planShareRoute } from './shareRoute.ts'
 import { delaySecFromTrip, hsinchuMeter } from './taxiTariff.ts'
 import { buildTheater } from './theater.ts'
 
@@ -291,8 +292,19 @@ function assignV1(riders: MatchRider[]): MatchRider[] {
   const solos = riders.map((rider) => rider.v1.soloFare)
   const totalMeter = Math.round(SHARE_METER_RATIO * solos.reduce((acc, fare) => acc + fare, 0))
   const fares = splitBySolo(solos, totalMeter)
+  const plan = planShareRoute(
+    riders.map((rider) => ({
+      riderId: rider.riderId,
+      pickup: rider.routePage.pickup,
+      dropoff: rider.routePage.dropoff,
+      originCircle: rider.routePage.originCircle,
+      destCircle: rider.routePage.destCircle,
+      maxWalkMin: rider.routePage.maxWalkMin,
+    })),
+  )
   return riders.map((rider, index) => {
-    const walkMin = Math.min(V1_WALK_CAP, rider.routePage.maxWalkMin)
+    const snapWalk = plan?.byRider[rider.riderId]?.walkMin
+    const walkMin = snapWalk ?? Math.min(V1_WALK_CAP, rider.routePage.maxWalkMin)
     const rideMin = rider.v1.soloRideMin + Math.min(V1_RIDE_EXTRA_CAP, rider.routePage.extraTimeMin)
     return {
       ...rider,

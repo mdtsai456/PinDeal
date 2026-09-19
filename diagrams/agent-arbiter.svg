@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" xml:lang="zh-Hant">
+  <title>PinDeal User Agent 與 Arbiter 互動架構</title>
+  <desc>乘客不進場。User Agent 送結構化需求與一份 pitch。Arbiter 出 v1／v2。Host 用分數、多數與牆成交。</desc>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0d12"/>
+      <stop offset="60%" stop-color="#12101a"/>
+      <stop offset="100%" stop-color="#0c1018"/>
+    </linearGradient>
+    <radialGradient id="glow2" cx="82%" cy="20%" r="50%">
+      <stop offset="0%" stop-color="#8b6cc9" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#8b6cc9" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrY" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ffd000"/>
+    </marker>
+    <filter id="soft2" x="-6%" y="-6%" width="112%" height="112%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg2)"/>
+  <rect width="1920" height="1080" fill="url(#glow2)"/>
+  <path d="M0 0 H1920" stroke="#ffd000" stroke-width="6"/>
+
+  <g transform="translate(56,40)">
+    <rect width="44" height="44" rx="12" fill="#8b6cc9"/>
+    <circle cx="22" cy="20" r="8" fill="#ffd000"/>
+    <rect x="12" y="30" width="20" height="6" rx="3" fill="#f7f1e3"/>
+    <text x="60" y="16" fill="#b9a4e6" font-family="Inter, 'SF Pro Text', sans-serif" font-size="13" font-weight="700" letter-spacing="3.2">PROTOCOL</text>
+    <text x="60" y="48" fill="#f7f1e3" font-family="'SF Pro Display', 'PingFang TC', 'Noto Sans TC', sans-serif" font-size="36" font-weight="700">User Agent 與 Arbiter</text>
+    <text x="980" y="20" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="16">這是 Agent 房間，不是乘客群組聊天。</text>
+    <text x="980" y="48" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="18">人不上場、不投票、不選軸。對白不能決定成交。</text>
+  </g>
+
+  <g transform="translate(56,118)" font-family="'PingFang TC', 'Noto Sans TC', sans-serif">
+    <rect width="1808" height="72" rx="16" fill="#161c26" stroke="#2a3342"/>
+    <g>
+      <circle cx="40" cy="36" r="14" fill="#ffd000"/>
+      <text x="40" y="41" text-anchor="middle" fill="#12151a" font-size="13" font-weight="700">1</text>
+      <text x="62" y="41" fill="#f3e6c8" font-size="15">結構化需求</text>
+    </g>
+    <path d="M196 36 H228" stroke="#ffd000" stroke-width="2" marker-end="url(#arrY)"/>
+    <g>
+      <circle cx="256" cy="36" r="14" fill="#8b6cc9"/>
+      <text x="256" y="41" text-anchor="middle" fill="#f7f1e3" font-size="13" font-weight="700">2</text>
+      <text x="278" y="41" fill="#f3e6c8" font-size="15">Arbiter v1</text>
+    </g>
+    <path d="M400 36 H432" stroke="#ffd000" stroke-width="2" marker-end="url(#arrY)"/>
+    <g>
+      <circle cx="460" cy="36" r="14" fill="#4aa3c8"/>
+      <text x="460" y="41" text-anchor="middle" fill="#0b0e13" font-size="13" font-weight="700">3</text>
+      <text x="482" y="41" fill="#f3e6c8" font-size="15">算分 ＋ 一份 pitch</text>
+    </g>
+    <path d="M656 36 H688" stroke="#ffd000" stroke-width="2" marker-end="url(#arrY)"/>
+    <g>
+      <circle cx="716" cy="36" r="14" fill="#8b6cc9"/>
+      <text x="716" y="41" text-anchor="middle" fill="#f7f1e3" font-size="13" font-weight="700">4</text>
+      <text x="738" y="41" fill="#f3e6c8" font-size="15">Arbiter v2</text>
+    </g>
+    <path d="M856 36 H888" stroke="#ffd000" stroke-width="2" marker-end="url(#arrY)"/>
+    <g>
+      <circle cx="916" cy="36" r="14" fill="#4aa3c8"/>
+      <text x="916" y="41" text-anchor="middle" fill="#0b0e13" font-size="13" font-weight="700">5</text>
+      <text x="938" y="41" fill="#f3e6c8" font-size="15">再算分，不寫新稿</text>
+    </g>
+    <path d="M1128 36 H1160" stroke="#ffd000" stroke-width="2" marker-end="url(#arrY)"/>
+    <g>
+      <circle cx="1188" cy="36" r="14" fill="#ffd000"/>
+      <text x="1188" y="41" text-anchor="middle" fill="#12151a" font-size="13" font-weight="700">6</text>
+      <text x="1210" y="41" fill="#f3e6c8" font-size="15">Host：多數 → 牆踢 → 靜默重算</text>
+    </g>
+    <text x="1568" y="41" fill="#8d96a3" font-size="14">沒有第三輪討論</text>
+  </g>
+
+  <g transform="translate(56,214)" filter="url(#soft2)">
+    <g>
+      <rect width="360" height="520" rx="22" fill="#171d27" stroke="#2c3646"/>
+      <text x="24" y="40" fill="#8d96a3" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">OUTSIDE THE ROOM</text>
+      <text x="24" y="76" fill="#f7f1e3" font-family="'PingFang TC', sans-serif" font-size="24" font-weight="700">乘客</text>
+      <text x="24" y="106" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">不進 Agent 房間。不跟 Arbiter 說話。</text>
+      <rect x="24" y="128" width="312" height="168" rx="16" fill="#121821"/>
+      <rect x="128" y="144" width="104" height="136" rx="18" fill="#0e131a" stroke="#3d7ea6" stroke-width="2"/>
+      <rect x="168" y="150" width="24" height="4" rx="2" fill="#2a3342"/>
+      <text x="180" y="186" text-anchor="middle" fill="#8fd3ef" font-family="'PingFang TC', sans-serif" font-size="11" font-weight="700">PinDeal</text>
+      <text x="180" y="208" text-anchor="middle" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="10">Waiting…</text>
+      <rect x="144" y="222" width="72" height="8" rx="4" fill="#2a3342"/>
+      <rect x="144" y="236" width="54" height="8" rx="4" fill="#1e3a4c"/>
+      <rect x="166" y="262" width="28" height="6" rx="3" fill="#2a3342"/>
+      <text x="180" y="286" text-anchor="middle" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="12">只等結果</text>
+      <text x="24" y="332" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="16" font-weight="700">做完就停</text>
+      <text x="24" y="362" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">設 Max walk、Extra time、車種牆</text>
+      <text x="24" y="386" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">車資必須低於自己的獨乘</text>
+      <text x="24" y="410" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">不能選 fare／walk／ride／ontime</text>
+      <rect x="24" y="436" width="312" height="62" rx="12" fill="#122018" stroke="#2f6b4f"/>
+      <text x="40" y="460" fill="#8fd4ab" font-family="'PingFang TC', sans-serif" font-size="14" font-weight="700">最後只看</text>
+      <text x="40" y="482" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">自己 Agent 英文 theater ＋ 自己走／坐／車資</text>
+    </g>
+
+    <g transform="translate(384,0)">
+      <rect width="520" height="520" rx="22" fill="#171d27" stroke="#3d7ea6"/>
+      <text x="24" y="40" fill="#8fd3ef" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">USER AGENTS</text>
+      <text x="24" y="76" fill="#f7f1e3" font-family="'PingFang TC', sans-serif" font-size="24" font-weight="700">2–4 位代談者</text>
+      <text x="24" y="106" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">每人只服務一個 username。不准點名，不准講別人車資。</text>
+      <g font-family="'PingFang TC', sans-serif">
+        <rect x="24" y="128" width="228" height="70" rx="14" fill="#1e3a4c"/>
+        <text x="40" y="156" fill="#8fd3ef" font-size="13" font-weight="700">A · Yu</text>
+        <text x="40" y="180" fill="#c8e8f6" font-size="13">只看 Yu 的牆與切片</text>
+        <rect x="268" y="128" width="228" height="70" rx="14" fill="#1c3a2c"/>
+        <text x="284" y="156" fill="#8fd4ab" font-size="13" font-weight="700">B · Lin</text>
+        <text x="284" y="180" fill="#c8ead8" font-size="13">只看 Lin 的牆與切片</text>
+        <rect x="24" y="210" width="228" height="70" rx="14" fill="#3a2a1c"/>
+        <text x="40" y="238" fill="#f0b27a" font-size="13" font-weight="700">C · Chiang</text>
+        <text x="40" y="262" fill="#f6d7b4" font-size="13">只看 Chiang 的牆與切片</text>
+        <rect x="268" y="210" width="228" height="70" rx="14" fill="#3a341c"/>
+        <text x="284" y="238" fill="#e6d07a" font-size="13" font-weight="700">D · Yang</text>
+        <text x="284" y="262" fill="#efe6b8" font-size="13">只看 Yang 的牆與切片</text>
+      </g>
+      <rect x="24" y="300" width="472" height="196" rx="14" fill="#121821"/>
+      <text x="40" y="332" fill="#ffd000" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">EACH AGENT DOES</text>
+      <text x="40" y="364" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">收到 v1 後：對牆打分，並寫恰好一份 pitch</text>
+      <text x="40" y="390" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">一個要推的軸 ＋ 一個願意放出的軸</text>
+      <text x="40" y="420" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">time→ontime　price→fare　comfort→walk　direct→ride</text>
+      <text x="40" y="450" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">收到 v2 後：只再算分。不准再寫新稿。</text>
+      <text x="40" y="476" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">撞牆分數 = 0，這一票是硬否決。</text>
+    </g>
+
+    <g transform="translate(928,0)">
+      <rect width="424" height="520" rx="22" fill="#1a1624" stroke="#8b6cc9"/>
+      <text x="24" y="40" fill="#b9a4e6" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">ARBITER MIND</text>
+      <text x="24" y="76" fill="#f7f1e3" font-family="'PingFang TC', sans-serif" font-size="24" font-weight="700">唯一仲裁</text>
+      <text x="24" y="106" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">只跟 Agent 說話。不做第三輪。</text>
+      <rect x="24" y="128" width="376" height="100" rx="14" fill="#241c36"/>
+      <text x="40" y="160" fill="#b9a4e6" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">收 packs → 出 offer v1</text>
+      <text x="40" y="186" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">每人一份 walk／ride／fare／車況切片</text>
+      <text x="40" y="210" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">先讓大家都盡量待在牆內，且比獨乘便宜。</text>
+      <rect x="24" y="244" width="376" height="100" rx="14" fill="#241c36"/>
+      <text x="40" y="276" fill="#b9a4e6" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">收 pitches → 出 offer v2</text>
+      <text x="40" y="302" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">沿 pitch.axis 移動剩餘，並收下 pitch.give</text>
+      <text x="40" y="326" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">車資加總必須仍等於 totalMeter。</text>
+      <rect x="24" y="360" width="376" height="136" rx="14" fill="#121821"/>
+      <text x="40" y="392" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">Arbiter 不靠散文成交</text>
+      <text x="40" y="418" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">Demo 裡 v1／v2 由 runMatch 算出。</text>
+      <text x="40" y="442" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">Prompt 只描述同一套協定。</text>
+      <text x="40" y="466" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">公開文字不准寫出人名。</text>
+    </g>
+
+    <g transform="translate(1376,0)">
+      <rect width="432" height="520" rx="22" fill="#1c1810" stroke="#ffd000" stroke-opacity="0.55"/>
+      <text x="24" y="40" fill="#ffd000" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">HOST · runMatch</text>
+      <text x="24" y="76" fill="#f7f1e3" font-family="'PingFang TC', sans-serif" font-size="24" font-weight="700">機械收尾</text>
+      <text x="24" y="106" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">這不是第五個 Agent。這是成交函式。</text>
+      <g font-family="'PingFang TC', sans-serif">
+        <text x="24" y="150" fill="#f3e6c8" font-size="16" font-weight="700">多數</text>
+        <text x="24" y="176" fill="#c8c0ae" font-size="14">v2 分 &gt; v1 分才算一票同意</text>
+        <text x="24" y="200" fill="#c8c0ae" font-size="14">2 人要 2 票 · 3 人要 2 票 · 4 人要 3 票</text>
+        <text x="24" y="224" fill="#8d96a3" font-size="13">沒過就留 v1。</text>
+        <text x="24" y="268" fill="#f3e6c8" font-size="16" font-weight="700">牆踢</text>
+        <text x="24" y="294" fill="#c8c0ae" font-size="14">先比完 v1／v2，定案後才踢</text>
+        <text x="24" y="318" fill="#c8c0ae" font-size="14">被踢付獨乘。留下的人按獨乘比重拆</text>
+        <text x="24" y="342" fill="#8d96a3" font-size="13">剩 1 人就散團，全員獨乘。</text>
+        <text x="24" y="386" fill="#f3e6c8" font-size="16" font-weight="700">靜默重算</text>
+        <text x="24" y="412" fill="#c8c0ae" font-size="14">踢人之後不再討論、不再收 pitch</text>
+        <text x="24" y="436" fill="#c8c0ae" font-size="14">theater 由 pitch 與分數翻譯</text>
+        <text x="24" y="460" fill="#8d96a3" font-size="13">OpenRouter 若在，也只能改這段英文。</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(56,756)">
+    <rect width="1808" height="132" rx="18" fill="#141a23" stroke="#2a3342"/>
+    <text x="28" y="32" fill="#8d96a3" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">WHAT CROSSES THE ROOM</text>
+    <g font-family="'PingFang TC', sans-serif">
+      <text x="28" y="68" fill="#4aa3c8" font-size="15" font-weight="700">Agent → Arbiter</text>
+      <text x="28" y="94" fill="#c8c0ae" font-size="14">結構化需求 packs</text>
+      <text x="28" y="116" fill="#c8c0ae" font-size="14">恰好一份 surplus pitch</text>
+      <text x="360" y="68" fill="#b9a4e6" font-size="15" font-weight="700">Arbiter → Agent</text>
+      <text x="360" y="94" fill="#c8c0ae" font-size="14">offer v1 切片</text>
+      <text x="360" y="116" fill="#c8c0ae" font-size="14">offer v2 切片</text>
+      <text x="700" y="68" fill="#ffd000" font-size="15" font-weight="700">Host 只讀數字</text>
+      <text x="700" y="94" fill="#c8c0ae" font-size="14">score、牆、多數、踢人、分帳</text>
+      <text x="700" y="116" fill="#c8c0ae" font-size="14">不讀聊天，也不讓聊天覆寫結果</text>
+      <text x="1140" y="68" fill="#8fd4ab" font-size="15" font-weight="700">Rider 只讀翻譯</text>
+      <text x="1140" y="94" fill="#c8c0ae" font-size="14">自己的 theater 3–5 行英文</text>
+      <text x="1140" y="116" fill="#c8c0ae" font-size="14">最後一行可以只有自己的 NT$</text>
+      <text x="1520" y="68" fill="#f0a3a3" font-size="15" font-weight="700">永遠不上屏</text>
+      <text x="1520" y="94" fill="#c8c0ae" font-size="14">別人 pitch、別人 fare</text>
+      <text x="1520" y="116" fill="#c8c0ae" font-size="14">Arbiter 獨白、結構化欄位</text>
+    </g>
+  </g>
+
+  <g transform="translate(56,908)" font-family="'PingFang TC', sans-serif">
+    <rect width="1808" height="120" rx="18" fill="#211616" stroke="#5a3030"/>
+    <text x="28" y="36" fill="#f0a3a3" font-size="14" font-weight="700">牆 · 撞到就踢，多數決無效</text>
+    <text x="28" y="68" fill="#f3e6c8" font-size="16">walk &gt; Max walk</text>
+    <text x="320" y="68" fill="#f3e6c8" font-size="16">ride &gt; 獨乘 ＋ Extra time</text>
+    <text x="700" y="68" fill="#f3e6c8" font-size="16">車種／行李／無障礙不過</text>
+    <text x="1100" y="68" fill="#f3e6c8" font-size="16">fare ≥ soloFare</text>
+    <text x="28" y="98" fill="#8d96a3" font-size="14">v1 撞牆、v2 修好，算同意 v2。定案後才踢。重算後不再投票。</text>
+  </g>
+</svg>

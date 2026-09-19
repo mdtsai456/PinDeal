@@ -81,6 +81,20 @@ export async function joinMatch(
 ): Promise<MatchRecord> {
   const incoming = asJoinBody(body)
   const current = readMatch(filePath)
+  const alreadyIn = current.riders.some((rider) => rider.username === incoming.username)
+  if (alreadyIn) {
+    switch (current.status) {
+      case 'settled':
+      case 'solo':
+        return current
+      case 'collecting':
+        return addToCollecting(filePath, current, incoming, options)
+      default: {
+        const _exhaustive: never = current.status
+        return _exhaustive
+      }
+    }
+  }
   if (current.riders.length >= 4) {
     throw new JoinMatchError('match_full')
   }

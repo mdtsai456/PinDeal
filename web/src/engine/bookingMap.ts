@@ -1,8 +1,9 @@
-import { rememberPlace } from '../geo'
-import type { LatLng, Place, RiderId, RouteStop, StopKind } from '../types'
-import { commonMeetPoint, haversineKm, personalMeetOnSpine, projectOntoSegment } from './corridor'
-import type { MatchRecord, MatchRider, Username } from './match'
-import { ownRider, sharePaxCount } from './matchView'
+import { clipPolyline, rememberPlace } from '../geo.ts'
+import type { LatLng, Place, RiderId, RouteStop, StopKind } from '../types.ts'
+import { haversineKm, projectOntoSegment } from './corridor.ts'
+import type { MatchRecord, MatchRider, Username } from './match.ts'
+import { ownRider, sharePaxCount } from './matchView.ts'
+import { planShareRoute, type ShareRiderInput } from './shareRoute.ts'
 
 export type BookingMapView = {
   origin: Place
@@ -11,9 +12,19 @@ export type BookingMapView = {
   stops: RouteStop[]
   boardOrder: number
   walkPolylines: LatLng[][]
+  clipFrom?: LatLng
+  clipTo?: LatLng
+}
+
+// 各窗仍請求同一條走廊車路，顯示時切到自己上車到下車。
+export function sliceShareDrive(polyline: LatLng[], booking: Pick<BookingMapView, 'clipFrom' | 'clipTo'>): LatLng[] {
+  if (!booking.clipFrom || !booking.clipTo) return polyline
+  return clipPolyline(polyline, booking.clipFrom, booking.clipTo)
 }
 
 const WALK_SKIP_KM = 0.005
+const SHARE_MEET_PICKUP_ID = 'share-meet-pickup'
+const SHARE_MEET_DROPOFF_ID = 'share-meet-dropoff'
 
 type SpineKind = 'board' | 'alight'
 
@@ -25,7 +36,7 @@ type SpineStop = {
   order: number
 }
 
-// 把成交檔收成付款與追蹤地圖。共乘時此窗只畫自己的步行與車程切片。
+// 把成交檔收成付款與追蹤地圖。共乘時各窗同一條車路，步行是自己門到扣點。
 export function bookingMapView(
   match: MatchRecord | null,
   username: Username,
@@ -63,80 +74,97 @@ function settledView(
   }
 
   const shareRiders = match.riders.filter((rider) => isShareOutcome(rider.outcome))
-  const spineA = commonMeetPoint(shareRiders.map((rider) => rider.routePage.originCircle))
-  const spineB = commonMeetPoint(shareRiders.map((rider) => rider.routePage.destCircle))
-  if (!spineA || !spineB) return ownSoloView(origin, dest)
+  const plan = planShareRoute(shareRiders.map(shareInputOf))
+  const mine = plan?.byRider[me.riderId]
+  if (!plan || !mine) return ownSoloView(origin, dest)
 
-  const boards = numberStops(shareRiders.map((rider) => riderBoard(rider, spineA, spineB)))
-  const alights = numberStops(shareRiders.map((rider) => riderAlight(rider, spineA, spineB)))
+  const meetPickup = rememberPlace({
+    id: SHARE_MEET_PICKUP_ID,
+    name: 'Shared pickup',
+    address: '',
+    lat: plan.spineA.lat,
+    lng: plan.spineA.lng,
+  })
+  const meetDropoff = rememberPlace({
+    id: SHARE_MEET_DROPOFF_ID,
+    name: 'Shared dropoff',
+    address: '',
+    lat: plan.spineB.lat,
+    lng: plan.spineB.lng,
+  })
+
+  const boards = numberStops(
+    shareRiders.flatMap((rider) => {
+      const snap = plan.byRider[rider.riderId]
+      return snap ? [placedStop(rider, 'board', snap.board, plan.spineA, plan.spineB)] : []
+    }),
+  )
+  const alights = sortStops(
+    shareRiders.flatMap((rider) => {
+      const snap = plan.byRider[rider.riderId]
+      return snap ? [placedStop(rider, 'alight', snap.alight, plan.spineA, plan.spineB)] : []
+    }),
+  )
   const ownBoard = boards.find((stop) => stop.riderId === me.riderId)
   const ownAlight = alights.find((stop) => stop.riderId === me.riderId)
   if (!ownBoard || !ownAlight) return ownSoloView(origin, dest)
 
-  const taxi = [...boards, ...alights]
-  const start = taxi.findIndex((stop) => stop.kind === 'board' && stop.riderId === me.riderId)
-  const end = taxi.findIndex((stop) => stop.kind === 'alight' && stop.riderId === me.riderId)
-  if (start < 0 || end < start) return ownSoloView(origin, dest)
-
-  const slice = taxi.slice(start, end + 1)
-  const rideOrigin = slice[0]?.place
-  const rideDest = slice.at(-1)?.place
-  if (!rideOrigin || !rideDest) return ownSoloView(origin, dest)
-
   const ownPickup = rememberPlace(me.routePage.pickup)
   const ownDropoff = rememberPlace(me.routePage.dropoff)
-  const interior = slice.slice(1, -1)
-  const vias = interior.map((stop) => stop.place)
+  // 同伴數字是本窗第幾個上／下車，不含自己，避免標出第幾位去哪。
+  const peers = [
+    ...numberStops(boards.filter((stop) => stop.riderId !== me.riderId && onOwnRide(stop, ownBoard, ownAlight))),
+    ...numberStops(alights.filter((stop) => stop.riderId !== me.riderId && onOwnRide(stop, ownBoard, ownAlight))),
+  ]
   return {
-    origin: rideOrigin,
-    dest: rideDest,
-    vias,
+    origin: meetPickup,
+    dest: meetDropoff,
+    vias: [],
     stops: [
       namedStop('walk-start', 'walkStart', me.riderId, ownPickup.id),
-      namedStop('pickup', 'pickup', me.riderId, rideOrigin.id),
-      ...interior.map((stop) => peerStop(stop)),
-      namedStop('dropoff', 'dropoff', me.riderId, rideDest.id),
+      namedStop('pickup', 'pickup', me.riderId, ownBoard.place.id),
+      ...peers.map((stop) => peerStop(stop)),
+      namedStop('dropoff', 'dropoff', me.riderId, ownAlight.place.id),
       namedStop('walk-end', 'walkEnd', me.riderId, ownDropoff.id),
     ],
     boardOrder: ownBoard.order,
-    walkPolylines: walkLegs(ownPickup, rideOrigin, rideDest, ownDropoff),
+    walkPolylines: walkLegs(ownPickup, ownBoard.place, ownAlight.place, ownDropoff),
+    clipFrom: asLatLng(ownBoard.place),
+    clipTo: asLatLng(ownAlight.place),
   }
 }
 
-function riderBoard(
-  rider: MatchRider,
-  spineA: LatLng,
-  spineB: LatLng,
-): Omit<SpineStop, 'order'> {
-  const door = rider.routePage.pickup
-  const point = personalMeetOnSpine(door, rider.routePage.originCircle, spineA, spineB)
+function onOwnRide(item: Pick<SpineStop, 't'>, ownBoard: Pick<SpineStop, 't'>, ownAlight: Pick<SpineStop, 't'>): boolean {
+  const lo = Math.min(ownBoard.t, ownAlight.t)
+  const hi = Math.max(ownBoard.t, ownAlight.t)
+  return item.t >= lo && item.t <= hi
+}
+
+function shareInputOf(rider: MatchRider): ShareRiderInput {
   return {
     riderId: rider.riderId,
-    kind: 'board',
-    place: rememberPlace({
-      id: `board-${rider.riderId}`,
-      name: 'Board',
-      address: '',
-      lat: point.lat,
-      lng: point.lng,
-    }),
-    t: projectOntoSegment(door, spineA, spineB).tLine,
+    pickup: rider.routePage.pickup,
+    dropoff: rider.routePage.dropoff,
+    originCircle: rider.routePage.originCircle,
+    destCircle: rider.routePage.destCircle,
+    maxWalkMin: rider.routePage.maxWalkMin,
   }
 }
 
-function riderAlight(
+function placedStop(
   rider: MatchRider,
+  kind: SpineKind,
+  point: LatLng,
   spineA: LatLng,
   spineB: LatLng,
 ): Omit<SpineStop, 'order'> {
-  const door = rider.routePage.dropoff
-  const point = personalMeetOnSpine(door, rider.routePage.destCircle, spineA, spineB)
+  const door = kind === 'board' ? rider.routePage.pickup : rider.routePage.dropoff
   return {
     riderId: rider.riderId,
-    kind: 'alight',
+    kind,
     place: rememberPlace({
-      id: `alight-${rider.riderId}`,
-      name: 'Alight',
+      id: kind === 'board' ? `board-${rider.riderId}` : `alight-${rider.riderId}`,
+      name: kind === 'board' ? 'Board' : 'Alight',
       address: '',
       lat: point.lat,
       lng: point.lng,
@@ -146,12 +174,14 @@ function riderAlight(
 }
 
 function numberStops(items: Omit<SpineStop, 'order'>[]): SpineStop[] {
-  return [...items]
-    .sort((left, right) => {
-      if (left.t !== right.t) return left.t - right.t
-      return left.riderId.localeCompare(right.riderId)
-    })
-    .map((item, index) => ({ ...item, order: index + 1 }))
+  return sortStops(items).map((item, index) => ({ ...item, order: index + 1 }))
+}
+
+function sortStops(items: Omit<SpineStop, 'order'>[]): Omit<SpineStop, 'order'>[] {
+  return [...items].sort((left, right) => {
+    if (left.t !== right.t) return left.t - right.t
+    return left.riderId.localeCompare(right.riderId)
+  })
 }
 
 function peerStop(item: SpineStop): RouteStop {

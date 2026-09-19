@@ -152,7 +152,7 @@ describe('matchStore', () => {
     expect(readMatch(filePath)).toEqual(first)
   })
 
-  it('第 5 人 join 回 409 match_full', async () => {
+  it('四人團已在檔內時，團員再 join 回原檔，不報 match_full', async () => {
     const four = runMatch(
       (['A', 'B', 'C', 'D'] as const).map((id) => ({
         username: usernameForRider(id),
@@ -161,11 +161,10 @@ describe('matchStore', () => {
       })),
     )
     writeFileSync(filePath, JSON.stringify(four))
-    await expect(joinMatch(filePath, joinBody('A'))).rejects.toMatchObject({
-      status: 409,
-      error: 'match_full',
-    })
-    expect(readMatch(filePath).riders).toHaveLength(4)
+    const again = await joinMatch(filePath, joinBody('A'))
+    expect(again.status).toBe(four.status)
+    expect(again.riders).toHaveLength(4)
+    expect(again.riders.map((rider) => rider.username)).toEqual(four.riders.map((rider) => rider.username))
   })
 
   it('已 settled 再 join 開新團，只帶這一筆', async () => {

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import viaPinUrl from '../assets/via-pin.svg?url'
 import { RIDER_TINT } from '../data'
-import { placeById } from '../geo'
+import { nearestOnLine, placeById } from '../geo'
 import { cardRect, iconLayout, pickCardSide, pointAlongPath, sampleLine, type CardSide, type Pt, type Rect } from '../mapCards'
 import { stopMark } from '../labels'
 import type { Circle } from '../engine/corridor'
@@ -123,14 +123,14 @@ function bookingIcon(item: RouteStop): L.DivIcon {
     case 'pickup':
       return L.divIcon({
         className: 'pin',
-        html: '<div class="origin-dot origin-dot-pickup"></div>',
+        html: `<div class="origin-dot origin-dot-pickup">${orderLabel(item.order)}</div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       })
     case 'dropoff':
       return L.divIcon({
         className: 'pin',
-        html: '<div class="origin-dot origin-dot-dropoff"></div>',
+        html: `<div class="origin-dot origin-dot-dropoff">${orderLabel(item.order)}</div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
       })
@@ -160,22 +160,26 @@ function bookingIcon(item: RouteStop): L.DivIcon {
 }
 
 function peerDotIcon(kind: 'pickup' | 'dropoff', order?: number): L.DivIcon {
-  const label = order == null ? '' : String(order)
   return L.divIcon({
     className: 'pin',
-    html: `<div class="peer-dot peer-dot-${kind}">${label}</div>`,
+    html: `<div class="peer-dot peer-dot-${kind}">${orderLabel(order)}</div>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
   })
 }
 
-function bookingPoint(item: RouteStop, place: { lat: number; lng: number }): LatLng {
+function orderLabel(order?: number): string {
+  return order == null ? '' : String(order)
+}
+
+function bookingPoint(item: RouteStop, place: { lat: number; lng: number }, polyline: LatLng[]): LatLng {
   switch (item.kind) {
     case 'meet':
     case 'peerPickup':
     case 'peerDropoff':
     case 'pickup':
     case 'dropoff':
+      return nearestOnLine(place, polyline)
     case 'walkStart':
     case 'walkEnd':
       return place
@@ -184,6 +188,21 @@ function bookingPoint(item: RouteStop, place: { lat: number; lng: number }): Lat
       return _exhaustive
     }
   }
+}
+
+function bookingWalks(stops: RouteStop[], polyline: LatLng[]): LatLng[][] {
+  const start = stops.find((stop) => stop.kind === 'walkStart')
+  const pickup = stops.find((stop) => stop.kind === 'pickup')
+  const dropoff = stops.find((stop) => stop.kind === 'dropoff')
+  const end = stops.find((stop) => stop.kind === 'walkEnd')
+  const legs: LatLng[][] = []
+  if (start && pickup) {
+    legs.push([placeById(start.placeId), bookingPoint(pickup, placeById(pickup.placeId), polyline)])
+  }
+  if (dropoff && end) {
+    legs.push([bookingPoint(dropoff, placeById(dropoff.placeId), polyline), placeById(end.placeId)])
+  }
+  return legs
 }
 
 function taxiIcon(): L.DivIcon {
@@ -259,13 +278,26 @@ export function MapCanvas({
     stopLayerRef.current = L.layerGroup().addTo(map)
     walkLayerRef.current = L.layerGroup().addTo(map)
     walkDashLayerRef.current = L.layerGroup().addTo(map)
-    const timer = window.setTimeout(() => map.invalidateSize(), 80)
+    const syncSize = () => {
+      const parent = host.parentElement
+      if (parent && host.clientHeight !== parent.clientHeight) {
+        host.style.height = `${parent.clientHeight}px`
+      }
+      if (host.clientHeight < 8) return
+      map.invalidateSize()
+      window.requestAnimationFrame(() => fitRef.current())
+    }
+    const observer = new ResizeObserver(syncSize)
+    observer.observe(host)
+    if (host.parentElement) observer.observe(host.parentElement)
+    const timer = window.setTimeout(syncSize, 80)
     map.on('click', (event: L.LeafletMouseEvent) => {
       onPickRef.current?.(event.latlng.lat, event.latlng.lng)
     })
 
     return () => {
       window.clearTimeout(timer)
+      observer.disconnect()
       map.remove()
       mapRef.current = null
       walkLayerRef.current = null
@@ -296,10 +328,11 @@ export function MapCanvas({
       }
     }
 
+    const dashes = variant === 'booking' ? bookingWalks(stops, polyline) : walkPolylines
     const dashLayer = walkDashLayerRef.current
     if (dashLayer) {
       dashLayer.clearLayers()
-      walkPolylines.forEach((leg) => {
+      dashes.forEach((leg) => {
         if (leg.length < 2) return
         L.polyline(
           leg.map((point) => [point.lat, point.lng] as L.LatLngExpression),
@@ -310,7 +343,9 @@ export function MapCanvas({
 
     const fitPad: L.PointExpression = variant === 'direct' || variant === 'booking' ? [48, 52] : [36, 44]
     const fitLine = () => {
-      const points = [...polyline, ...walkPolylines.flat()]
+      const size = map.getSize()
+      if (size.x < 8 || size.y < 8) return
+      const points = [...polyline, ...dashes.flat()]
       if (points.length === 0) return
       const first = points[0]
       if (!first) return
@@ -329,7 +364,7 @@ export function MapCanvas({
       }
       stops.forEach((item) => {
         const place = placeById(item.placeId)
-        const point = variant === 'booking' ? bookingPoint(item, place) : place
+        const point = variant === 'booking' ? bookingPoint(item, place, polyline) : place
         L.marker([point.lat, point.lng], {
           icon: iconFor(variant, item, place.name),
           keyboard: false,

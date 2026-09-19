@@ -4,7 +4,7 @@ import { readSessionUsername } from '../auth'
 import { MapCanvas } from '../components/MapCanvas'
 import { Screen, StepHeader } from '../components/Shell'
 import { fetchDrivingRoute, straightRoute } from '../directions'
-import { bookingMapView } from '../engine/bookingMap'
+import { bookingMapView, sliceShareDrive } from '../engine/bookingMap'
 import { usernameForRider } from '../engine/match'
 import { fetchMatch } from '../engine/matchApi'
 import { ownRider, payView, trackFare } from '../engine/matchView'
@@ -32,19 +32,19 @@ export function TrackScreen() {
   const ownPickup = placeById(you.originId)
   const boardLine = youBoardCopy(booking.boardOrder)
   const [driveLine, setDriveLine] = useState(() =>
-    straightRoute(booking.origin, booking.dest, booking.vias).polyline,
+    sliceShareDrive(straightRoute(booking.origin, booking.dest, booking.vias).polyline, booking),
   )
 
   useEffect(() => {
     let cancelled = false
-    setDriveLine(straightRoute(booking.origin, booking.dest, booking.vias).polyline)
+    setDriveLine(sliceShareDrive(straightRoute(booking.origin, booking.dest, booking.vias).polyline, booking))
     void fetchDrivingRoute(booking.origin, booking.dest, booking.vias).then((route) => {
-      if (!cancelled) setDriveLine(route.polyline)
+      if (!cancelled) setDriveLine(sliceShareDrive(route.polyline, booking))
     })
     return () => {
       cancelled = true
     }
-  }, [booking.dest, booking.origin, booking.vias])
+  }, [booking])
 
   useEffect(() => {
     if (view) return

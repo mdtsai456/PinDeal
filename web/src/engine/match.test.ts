@@ -15,7 +15,9 @@ import {
   type OfferSlice,
   type WallInput,
 } from './match'
+import { placeById } from '../geo'
 import { snapshotRoutePage } from './routePage'
+import { planShareRoute } from './shareRoute'
 
 function slice(partial: Partial<OfferSlice> & Pick<OfferSlice, 'walkMin' | 'rideMin' | 'fare'>): OfferSlice {
   return {
@@ -40,20 +42,8 @@ function seedFrom(id: 'A' | 'B' | 'C' | 'D', patch: Partial<ReturnType<typeof cl
     username: usernameForRider(id),
     demand,
     routePage: snapshotRoutePage({
-      pickup: {
-        id: demand.originId,
-        name: demand.originId,
-        address: '',
-        lat: 24.8018,
-        lng: 120.9717,
-      },
-      dropoff: {
-        id: demand.destinationId,
-        name: demand.destinationId,
-        address: '',
-        lat: 24.7956,
-        lng: 120.9925,
-      },
+      pickup: placeById(demand.originId),
+      dropoff: placeById(demand.destinationId),
       soloDurationMin: 12,
       soloDistanceKm: 2.4,
       extraTimeMin: demand.maxDetourMin,
@@ -169,10 +159,32 @@ describe('runMatch', () => {
     }
   })
 
+  it('v1 walkMin 來自共用走廊幾何，且不超過該人 maxWalkMin', () => {
+    const seeds = [seedFrom('A'), seedFrom('B')]
+    const record = runMatch(seeds)
+    const plan = planShareRoute(
+      seeds.map((seed) => ({
+        riderId: USERNAME_TO_RIDER[seed.username],
+        pickup: seed.routePage.pickup,
+        dropoff: seed.routePage.dropoff,
+        originCircle: seed.routePage.originCircle,
+        destCircle: seed.routePage.destCircle,
+        maxWalkMin: seed.routePage.maxWalkMin,
+      })),
+    )
+    expect(plan).not.toBeNull()
+    for (const rider of record.riders) {
+      const snap = plan?.byRider[rider.riderId]
+      expect(snap).toBeDefined()
+      expect(rider.v1.walkMin).toBe(snap?.walkMin)
+      expect(rider.v1.walkMin).toBeLessThanOrEqual(rider.routePage.maxWalkMin)
+    }
+  })
+
   it('多數採用 v2 後一人撞牆則踢出獨乘，留下 2 人重分', () => {
     const record = runMatch([
       seedFrom('A', { maxDetourMin: 5, priority: 'time' }),
-      seedFrom('B', { maxWalkMin: 4, maxDetourMin: 18, priority: 'price' }),
+      seedFrom('B', { maxWalkMin: 1, maxDetourMin: 18, priority: 'price' }),
       seedFrom('C', { maxWalkMin: 6, maxDetourMin: 15, priority: 'comfort' }),
     ])
     const lin = record.riders.find((rider) => rider.username === 'Lin')

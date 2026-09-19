@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" role="img" xml:lang="zh-Hant">
+  <title>PinDeal 整體架構</title>
+  <desc>乘客設牆，步行圈成團，runMatch 成交。每人只看自己的 theater 與車資。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0d12"/>
+      <stop offset="55%" stop-color="#10151d"/>
+      <stop offset="100%" stop-color="#0c1018"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="18%" cy="0%" r="55%">
+      <stop offset="0%" stop-color="#ffd000" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#ffd000" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ffd000"/>
+    </marker>
+    <filter id="soft" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+  <path d="M0 0 H1920" stroke="#ffd000" stroke-width="6"/>
+
+  <g transform="translate(56,40)">
+    <rect width="44" height="44" rx="12" fill="#ffd000"/>
+    <path d="M22 10c-6.2 0-11 4.8-11 11 0 8.2 11 19 11 19s11-10.8 11-19c0-6.2-4.8-11-11-11zm0 15.2a4.2 4.2 0 1 1 0-8.4 4.2 4.2 0 0 1 0 8.4z" fill="#12151a"/>
+    <text x="60" y="16" fill="#ffd000" font-family="Inter, 'SF Pro Text', 'PingFang TC', sans-serif" font-size="13" font-weight="700" letter-spacing="3.2">PINDEAL</text>
+    <text x="60" y="48" fill="#f7f1e3" font-family="'SF Pro Display', 'PingFang TC', 'Noto Sans TC', sans-serif" font-size="40" font-weight="700">整體架構</text>
+    <text x="980" y="20" fill="#8d96a3" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="16">2–4 視窗共乘 · 新竹走廊 · 每人只看自己的結果</text>
+    <text x="980" y="48" fill="#c8c0ae" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="18">乘客設牆 · Agent 代談 · <tspan fill="#ffd000" font-family="Inter, sans-serif" font-weight="700">runMatch</tspan> 成交 · 人不上場</text>
+  </g>
+
+  <g transform="translate(56,118)">
+    <rect width="1808" height="86" rx="18" fill="#161c26" stroke="#2a3342"/>
+    <text x="28" y="28" fill="#8d96a3" font-family="Inter, 'PingFang TC', sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">RIDER WINDOWS</text>
+    <g font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="15" font-weight="600">
+      <rect x="28" y="42" width="52" height="28" rx="8" fill="#1e3a4c"/>
+      <text x="54" y="61" text-anchor="middle" fill="#8fd3ef">Yu</text>
+      <rect x="86" y="42" width="78" height="28" rx="8" fill="#3a2a1c"/>
+      <text x="125" y="61" text-anchor="middle" fill="#f0b27a">Chiang</text>
+      <rect x="170" y="42" width="52" height="28" rx="8" fill="#1c3a2c"/>
+      <text x="196" y="61" text-anchor="middle" fill="#8fd4ab">Lin</text>
+      <rect x="228" y="42" width="64" height="28" rx="8" fill="#3a341c"/>
+      <text x="260" y="61" text-anchor="middle" fill="#e6d07a">Yang</text>
+    </g>
+    <text x="318" y="60" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">2–4 視窗 · 只打 username</text>
+    <g font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="16" fill="#f3e6c8">
+      <text x="620" y="52" font-weight="700">設行程與牆</text>
+      <path d="M742 47 H792" stroke="#ffd000" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="808" y="52" font-weight="700">Matching</text>
+      <path d="M900 47 H950" stroke="#ffd000" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="966" y="52" font-weight="700">Pay</text>
+      <path d="M1008 47 H1058" stroke="#ffd000" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="1074" y="52" font-weight="700">Track</text>
+    </g>
+    <text x="1188" y="52" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">Parse／Routes 已併進 Matching。人只等結果。</text>
+  </g>
+
+  <g transform="translate(56,226)" filter="url(#soft)">
+    <g>
+      <rect width="430" height="638" rx="22" fill="#171d27" stroke="#2c3646"/>
+      <rect width="430" height="8" rx="4" fill="#4aa3c8"/>
+      <text x="28" y="48" fill="#4aa3c8" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="2">01</text>
+      <text x="28" y="86" fill="#f7f1e3" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="26" font-weight="700">設行程與牆</text>
+      <text x="28" y="118" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">乘客先把底線鎖死。Agent 才能代談。</text>
+      <rect x="28" y="146" width="374" height="88" rx="14" fill="#121821"/>
+      <text x="48" y="180" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="15">Pickup → Dropoff</text>
+      <text x="48" y="206" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">先選點，確認後才畫自己的路線與圈</text>
+      <g font-family="'PingFang TC', 'Noto Sans TC', sans-serif">
+        <circle cx="40" cy="276" r="5" fill="#4aa3c8"/>
+        <text x="56" y="281" fill="#f3e6c8" font-size="16">Max walk</text>
+        <text x="56" y="304" fill="#8d96a3" font-size="13">上車圈＋下車圈一起改。Agent 可拿步行交換。</text>
+        <circle cx="40" cy="340" r="5" fill="#e08a3c"/>
+        <text x="56" y="345" fill="#f3e6c8" font-size="16">Extra time</text>
+        <text x="56" y="368" fill="#8d96a3" font-size="13">共乘可比獨乘多等的分鐘。不是抵達鐘點。</text>
+        <circle cx="40" cy="404" r="5" fill="#8b6cc9"/>
+        <text x="56" y="409" fill="#f3e6c8" font-size="16">車種／行李／無障礙</text>
+        <text x="56" y="432" fill="#8d96a3" font-size="13">硬條件。過不了就踢，多數決無效。</text>
+        <circle cx="40" cy="468" r="5" fill="#4ea37a"/>
+        <text x="56" y="473" fill="#f3e6c8" font-size="16">車資必須低於獨乘</text>
+        <text x="56" y="496" fill="#8d96a3" font-size="13">自己的 share fare ≥ solo 也算撞牆。</text>
+      </g>
+      <rect x="28" y="536" width="374" height="74" rx="14" fill="#211a14" stroke="#5a4630"/>
+      <text x="48" y="566" fill="#ffd000" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">人不上場</text>
+      <text x="48" y="590" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="13">不議價、不投票、不選剩餘軸。設完就等。</text>
+    </g>
+
+    <g transform="translate(459,0)">
+      <rect width="430" height="638" rx="22" fill="#171d27" stroke="#2c3646"/>
+      <rect width="430" height="8" rx="4" fill="#e08a3c"/>
+      <text x="28" y="48" fill="#e08a3c" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="2">02</text>
+      <text x="28" y="86" fill="#f7f1e3" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="26" font-weight="700">步行圈成團</text>
+      <text x="28" y="118" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">不是共用走廊，是每人自己走得動的範圍。</text>
+      <g transform="translate(78,148)">
+        <circle cx="78" cy="62" r="54" fill="#4aa3c8" fill-opacity="0.16" stroke="#4aa3c8" stroke-width="2"/>
+        <circle cx="132" cy="62" r="54" fill="#4aa3c8" fill-opacity="0.16" stroke="#4aa3c8" stroke-width="2"/>
+        <circle cx="105" cy="62" r="8" fill="#ffd000"/>
+        <text x="105" y="138" text-anchor="middle" fill="#8fd3ef" font-family="'PingFang TC', sans-serif" font-size="13">上車圈必須有共同交集</text>
+      </g>
+      <g transform="translate(78,300)">
+        <circle cx="78" cy="62" r="54" fill="#e08a3c" fill-opacity="0.14" stroke="#e08a3c" stroke-width="2"/>
+        <circle cx="132" cy="62" r="54" fill="#e08a3c" fill-opacity="0.14" stroke="#e08a3c" stroke-width="2"/>
+        <rect x="97" y="54" width="16" height="16" rx="3" fill="#ffd000"/>
+        <text x="105" y="138" text-anchor="middle" fill="#f0b27a" font-family="'PingFang TC', sans-serif" font-size="13">下車圈也必須有共同交集</text>
+      </g>
+      <g font-family="'PingFang TC', sans-serif" font-size="14">
+        <text x="28" y="500" fill="#f3e6c8">1 人 → collecting</text>
+        <text x="28" y="526" fill="#f3e6c8">2–4 人且兩端有交集 → runMatch</text>
+        <text x="28" y="552" fill="#d45648">任一端沒交集 → walk_circles_miss</text>
+        <text x="28" y="582" fill="#8d96a3" font-size="13">不改門到門停靠。沒有圈，共乘就沒有步行牆。</text>
+      </g>
+    </g>
+
+    <g transform="translate(918,0)">
+      <rect width="430" height="638" rx="22" fill="#171d27" stroke="#ffd000" stroke-opacity="0.45"/>
+      <rect width="430" height="8" rx="4" fill="#ffd000"/>
+      <text x="28" y="48" fill="#ffd000" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="2">03</text>
+      <text x="28" y="86" fill="#f7f1e3" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="26" font-weight="700">成交引擎</text>
+      <text x="28" y="118" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">唯一成交邏輯是 runMatch。對白不能改結果。</text>
+      <rect x="28" y="146" width="374" height="168" rx="14" fill="#1c1610" stroke="#5a4630"/>
+      <text x="48" y="176" fill="#ffd000" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="1.4">LOCKED PROTOCOL</text>
+      <text x="48" y="206" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">2–4 User Agents ＋ 1 Arbiter</text>
+      <text x="48" y="232" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">結構化需求 → v1 → 一份 pitch</text>
+      <text x="48" y="256" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">→ v2 → 再算分 → 多數採用</text>
+      <text x="48" y="286" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">撞牆則踢出，留下的人靜默重算。</text>
+      <rect x="28" y="332" width="374" height="132" rx="14" fill="#121821"/>
+      <text x="48" y="364" fill="#8fd4ab" font-family="'PingFang TC', sans-serif" font-size="16" font-weight="700">新竹跳表</text>
+      <text x="48" y="392" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">旗跳 NT$100／1.25 km，之後每 200 m NT$5</text>
+      <text x="48" y="416" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="14">共乘總額 ≈ 0.72 × 獨乘和</text>
+      <text x="48" y="440" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">按獨乘價比例拆。被踢的人付自己的獨乘。</text>
+      <rect x="28" y="482" width="374" height="128" rx="14" fill="#121821"/>
+      <text x="48" y="514" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="16" font-weight="700">寫進 current.json</text>
+      <text x="48" y="542" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">SQLite 只存帳號。行程與仲裁不進資料庫。</text>
+      <text x="48" y="566" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">Google Maps 可選，用來選點與畫路。</text>
+      <text x="48" y="590" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">OpenRouter 可選，只准改英文 theater。</text>
+    </g>
+
+    <g transform="translate(1377,0)">
+      <rect width="431" height="638" rx="22" fill="#171d27" stroke="#2c3646"/>
+      <rect width="431" height="8" rx="4" fill="#4ea37a"/>
+      <text x="28" y="48" fill="#4ea37a" font-family="Inter, sans-serif" font-size="13" font-weight="700" letter-spacing="2">04</text>
+      <text x="28" y="86" fill="#f7f1e3" font-family="'PingFang TC', 'Noto Sans TC', sans-serif" font-size="26" font-weight="700">每人只帶走自己的</text>
+      <text x="28" y="118" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="14">Matching／Pay／Track 都切這一個人的切片。</text>
+      <rect x="28" y="146" width="375" height="196" rx="14" fill="#122018" stroke="#2f6b4f"/>
+      <text x="48" y="178" fill="#8fd4ab" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">上屏</text>
+      <text x="48" y="210" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">自己 Agent 的英文 theater</text>
+      <text x="48" y="238" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">自己的 walk／ride／finalFare</text>
+      <text x="48" y="266" fill="#f3e6c8" font-family="'PingFang TC', sans-serif" font-size="15">自己走廊上的上下車點</text>
+      <text x="48" y="294" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">上車前、下車後的別人門牌不畫。</text>
+      <text x="48" y="318" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">Pay 右側只放這個人的車資。</text>
+      <rect x="28" y="362" width="375" height="196" rx="14" fill="#211616" stroke="#5a3030"/>
+      <text x="48" y="394" fill="#f0a3a3" font-family="'PingFang TC', sans-serif" font-size="15" font-weight="700">不上屏</text>
+      <text x="48" y="426" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="15">其他 Agent 的對白</text>
+      <text x="48" y="454" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="15">別人的車資與分數</text>
+      <text x="48" y="482" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="15">結構化欄位、pitch、多數細節</text>
+      <text x="48" y="510" fill="#c8c0ae" font-family="'PingFang TC', sans-serif" font-size="15">未配對池與仲裁獨白</text>
+      <text x="48" y="538" fill="#8d96a3" font-family="'PingFang TC', sans-serif" font-size="13">theater 是翻譯，不是成交開關。</text>
+    </g>
+  </g>
+
+  <g transform="translate(56,888)">
+    <rect width="1808" height="140" rx="20" fill="#141a23" stroke="#2a3342"/>
+    <text x="32" y="36" fill="#8d96a3" font-family="Inter, sans-serif" font-size="12" font-weight="700" letter-spacing="2">WHERE IT LIVES</text>
+    <g font-family="'PingFang TC', 'Noto Sans TC', sans-serif">
+      <text x="32" y="72" fill="#ffd000" font-size="16" font-weight="700">Match API</text>
+      <text x="32" y="98" fill="#c8c0ae" font-size="14">login／join／match／reset</text>
+      <text x="32" y="122" fill="#8d96a3" font-size="13">Vite middleware</text>
+      <text x="360" y="72" fill="#8fd3ef" font-size="16" font-weight="700">users.sqlite</text>
+      <text x="360" y="98" fill="#c8c0ae" font-size="14">只存 id ＋ username</text>
+      <text x="360" y="122" fill="#8d96a3" font-size="13">種子：Yu Chiang Lin Yang</text>
+      <text x="700" y="72" fill="#f0b27a" font-size="16" font-weight="700">current.json</text>
+      <text x="700" y="98" fill="#c8c0ae" font-size="14">這一團的活狀態</text>
+      <text x="700" y="122" fill="#8d96a3" font-size="13">行程、切片、theater</text>
+      <text x="1040" y="72" fill="#c8c0ae" font-size="16" font-weight="700">Google Maps</text>
+      <text x="1040" y="98" fill="#c8c0ae" font-size="14">可選。選點與路徑</text>
+      <text x="1040" y="122" fill="#8d96a3" font-size="13">沒 key 就用本機／mock</text>
+      <text x="1380" y="72" fill="#c8c0ae" font-size="16" font-weight="700">OpenRouter</text>
+      <text x="1380" y="98" fill="#c8c0ae" font-size="14">可選。成交後潤稿</text>
+      <text x="1380" y="122" fill="#8d96a3" font-size="13">失敗就留 buildTheater()</text>
+    </g>
+  </g>
+</svg>

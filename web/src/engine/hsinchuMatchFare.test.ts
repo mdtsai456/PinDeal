@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { cloneRider } from '../data'
+import { groupHasCommonIntersection, haversineKm } from './corridor'
 import { hitsWall, runMatch, splitBySolo, usernameForRider, type MatchSeed } from './match'
 import { snapshotRoutePage } from './routePage'
 import { delaySecFromTrip, hsinchuMeter } from './taxiTariff'
@@ -85,6 +86,69 @@ describe('hsinchu corridor fares', () => {
     expect(lin?.finalFare).toBe(97)
     expect(yu?.finalFare).toBeLessThan(yu?.v1.soloFare ?? 0)
     expect(lin?.finalFare).toBeLessThan(lin?.v1.soloFare ?? 0)
+  })
+
+  it('圈仍相交但門較遠時，獨乘與共乘都比近距離走廊貴', () => {
+    const yuP = { lat: 24.8018, lng: 120.9717 }
+    const chiangP = { lat: 24.8018, lng: 120.9796 }
+    const yuD = { lat: 24.7956, lng: 120.9925 }
+    const chiangD = { lat: 24.7956, lng: 120.9998 }
+    const yuKm = haversineKm(yuP, yuD)
+    const chiangKm = haversineKm(chiangP, chiangD)
+    const yuMin = Math.max(1, Math.round((yuKm / 28) * 60))
+    const chiangMin = Math.max(1, Math.round((chiangKm / 28) * 60))
+    const yu = cloneRider('A')
+    const chiang = cloneRider('C')
+    const record = runMatch([
+      {
+        username: 'Yu',
+        demand: { ...yu, maxWalkMin: 8 },
+        routePage: snapshotRoutePage({
+          pickup: { id: 'yu-far-p', name: 'Yu door', address: '', ...yuP },
+          dropoff: { id: 'yu-far-d', name: 'Yu dest', address: '', ...yuD },
+          soloDurationMin: yuMin,
+          soloDistanceKm: Number(yuKm.toFixed(1)),
+          extraTimeMin: yu.maxDetourMin,
+          maxWalkMin: 8,
+          bags: yu.luggageCount,
+          accessible: yu.accessibility,
+          extraPay: yu.extraPay,
+          notes: yu.rawText,
+        }),
+      },
+      {
+        username: 'Chiang',
+        demand: { ...chiang, maxWalkMin: 8 },
+        routePage: snapshotRoutePage({
+          pickup: { id: 'chiang-far-p', name: 'Chiang door', address: '', ...chiangP },
+          dropoff: { id: 'chiang-far-d', name: 'Chiang dest', address: '', ...chiangD },
+          soloDurationMin: chiangMin,
+          soloDistanceKm: Number(chiangKm.toFixed(1)),
+          extraTimeMin: chiang.maxDetourMin,
+          maxWalkMin: 8,
+          bags: chiang.luggageCount,
+          accessible: chiang.accessibility,
+          extraPay: chiang.extraPay,
+          notes: chiang.rawText,
+        }),
+      },
+    ])
+    const yuR = record.riders.find((rider) => rider.username === 'Yu')
+    const chiangR = record.riders.find((rider) => rider.username === 'Chiang')
+    expect(haversineKm(yuP, chiangP)).toBeGreaterThan(0.75)
+    expect(groupHasCommonIntersection([yuR!.routePage.originCircle, chiangR!.routePage.originCircle])).toBe(true)
+    expect(groupHasCommonIntersection([yuR!.routePage.destCircle, chiangR!.routePage.destCircle])).toBe(true)
+    expect(record.status).toBe('settled')
+    expect(yuR?.outcome).toBe('share')
+    expect(chiangR?.outcome).toBe('share')
+    expect(yuR?.finalWalkMin).toBeGreaterThanOrEqual(5)
+    expect(chiangR?.finalWalkMin).toBeGreaterThanOrEqual(5)
+    expect(yuR?.v1.soloFare).toBe(125)
+    expect(chiangR?.v1.soloFare).toBe(125)
+    expect(yuR?.finalFare).toBe(90)
+    expect(chiangR?.finalFare).toBe(90)
+    expect(yuR?.finalFare).toBeLessThan(yuR?.v1.soloFare ?? 0)
+    expect(chiangR?.finalFare).toBeLessThan(chiangR?.v1.soloFare ?? 0)
   })
 
   it('牆用同一費率：fare === soloFare 仍撞牆', () => {

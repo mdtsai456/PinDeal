@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { walkToSharedPickupCopy, youBoardCopy } from './labels'
+import { walkToSharedPickupCopy, youAreNthRiderCopy, youBoardCopy } from './labels'
 
 describe('youBoardCopy', () => {
   it('1 is You board 1st.', () => {
@@ -16,6 +16,16 @@ describe('youBoardCopy', () => {
 
   it('4 is You board 4th.', () => {
     expect(youBoardCopy(4)).toBe('You board 4th.')
+  })
+})
+
+describe('youAreNthRiderCopy', () => {
+  it('Yu 第 2 位', () => {
+    expect(youAreNthRiderCopy('Yu', 2)).toBe('Yu, you are the 2nd rider.')
+  })
+
+  it('Chiang 第 1 位', () => {
+    expect(youAreNthRiderCopy('Chiang', 1)).toBe('Chiang, you are the 1st rider.')
   })
 })
 

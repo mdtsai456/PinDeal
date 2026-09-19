@@ -4,10 +4,11 @@ import { readSessionUsername } from '../auth'
 import { MapCanvas } from '../components/MapCanvas'
 import { Screen, StepHeader } from '../components/Shell'
 import { fetchDrivingRoute, straightRoute } from '../directions'
-import { bookingMapView } from '../engine/bookingMap'
+import { bookingMapView, sliceShareDrive } from '../engine/bookingMap'
 import { usernameForRider } from '../engine/match'
 import { fetchMatch } from '../engine/matchApi'
-import { ownRider, payView, trackFare } from '../engine/matchView'
+import { ownWalkCircles, payView, trackFare } from '../engine/matchView'
+import { soloFareFromDemand } from '../engine/taxiTariff'
 import { interpolate, placeById } from '../geo'
 import { youBoardCopy } from '../labels'
 import { useTrip } from '../TripContext'
@@ -15,36 +16,33 @@ import type { LatLng } from '../types'
 
 export function TrackScreen() {
   const navigate = useNavigate()
-  const { you, youFare, resetTrip, match, absorbMatch } = useTrip()
+  const { you, resetTrip, match, absorbMatch } = useTrip()
   const username = readSessionUsername() ?? usernameForRider(you.id)
   const view = match ? payView(match, username) : null
-  const fare = trackFare(match, username, youFare)
+  const fare = trackFare(match, username, soloFareFromDemand(you))
   const [t, setT] = useState(0)
   const [eta, setEta] = useState(6)
   const booking = useMemo(
     () => bookingMapView(match, username, placeById(you.originId), placeById(you.destinationId)),
     [match, username, you.destinationId, you.originId],
   )
-  const me = match ? ownRider(match, username) : undefined
-  const walkCircles = me
-    ? { origin: me.routePage.originCircle, dest: me.routePage.destCircle }
-    : undefined
+  const walkCircles = ownWalkCircles(match, username, you)
   const ownPickup = placeById(you.originId)
   const boardLine = youBoardCopy(booking.boardOrder)
   const [driveLine, setDriveLine] = useState(() =>
-    straightRoute(booking.origin, booking.dest, booking.vias).polyline,
+    sliceShareDrive(straightRoute(booking.origin, booking.dest, booking.vias).polyline, booking),
   )
 
   useEffect(() => {
     let cancelled = false
-    setDriveLine(straightRoute(booking.origin, booking.dest, booking.vias).polyline)
+    setDriveLine(sliceShareDrive(straightRoute(booking.origin, booking.dest, booking.vias).polyline, booking))
     void fetchDrivingRoute(booking.origin, booking.dest, booking.vias).then((route) => {
-      if (!cancelled) setDriveLine(route.polyline)
+      if (!cancelled) setDriveLine(sliceShareDrive(route.polyline, booking))
     })
     return () => {
       cancelled = true
     }
-  }, [booking.dest, booking.origin, booking.vias])
+  }, [booking])
 
   useEffect(() => {
     if (view) return

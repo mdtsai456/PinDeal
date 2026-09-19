@@ -188,10 +188,8 @@ button {
   padding: 8px 16px;
 }
 
-.dispatch-ticket,
 .receipt,
-.json-card,
-.incident-card {
+.json-card {
   background: var(--paper);
   border: 1px dashed var(--ink);
   padding: 12px;
@@ -200,7 +198,6 @@ button {
   margin-bottom: 8px;
 }
 
-.ticket-kicker,
 .eyebrow {
   margin: 0;
   font-size: 11px;
@@ -215,17 +212,10 @@ button {
   letter-spacing: 0.12em;
 }
 
-.quick-list,
-.incident-grid {
+.quick-list {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
-}
-
-.incident-grid .ghost-btn {
-  margin: 0;
-  font-size: 12px;
-  padding: 10px 4px;
 }
 
 .quick {
@@ -774,47 +764,6 @@ button {
   font-size: 12px;
 }
 
-.radio-log {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.radio-log li {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
-}
-
-.radio-log em {
-  font-family: var(--mono);
-  font-style: normal;
-  font-size: 11px;
-}
-
-.radio-log b,
-.radio-log p,
-.radio-log small {
-  display: block;
-  margin: 0;
-}
-
-.log-reject {
-  background: rgba(196, 69, 54, 0.08);
-}
-
-.log-accept,
-.log-consensus {
-  background: rgba(47, 107, 79, 0.08);
-}
-
-.log-fare {
-  background: rgba(255, 208, 0, 0.18);
-}
-
 .receipt-ai {
   font-size: 14px;
   line-height: 1.55;
@@ -914,11 +863,21 @@ button {
 
 .booking-map {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   height: auto;
   min-height: 240px;
   margin: 0;
   border: 0;
   border-radius: 0;
+}
+
+/* 父層是 flex 且 height:auto 時，height:100% 會算成 0，畫布必須自己吃滿外框。 */
+.booking-map .map-canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
 }
 
 .booking-back {
@@ -938,7 +897,7 @@ button {
 .booking-sheet {
   background: #fff;
   border-radius: 20px 20px 0 0;
-  padding: 16px 16px 8px;
+  padding: 16px 16px 28px;
   box-shadow: 0 -10px 28px rgba(18, 21, 26, 0.1);
 }
 
@@ -952,15 +911,20 @@ button {
 
 .taxi-copy {
   display: grid;
-  grid-template-columns: 44px 1fr;
+  grid-template-columns: 48px 1fr;
   gap: 10px;
   align-items: start;
 }
 
-.taxi-emoji {
+.taxi-copy .taxi-emoji {
   margin: 0;
-  font-size: 36px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 32px;
   line-height: 1;
+  color: var(--ink);
 }
 
 .taxi-copy h3 {
@@ -1001,6 +965,12 @@ button {
 }
 
 .taxi-eta {
+  margin-bottom: 4px !important;
+  color: var(--ink) !important;
+  font-weight: 600;
+}
+
+.taxi-board {
   margin-bottom: 4px !important;
   color: var(--ink) !important;
   font-weight: 600;
@@ -1062,10 +1032,17 @@ button {
 }
 
 .origin-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
   border-radius: 50%;
   border: 3px solid #fff;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
   box-shadow:
     0 0 0 1px rgba(18, 21, 26, 0.2),
     0 2px 6px rgba(18, 21, 26, 0.2);

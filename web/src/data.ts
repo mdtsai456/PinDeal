@@ -1,55 +1,6 @@
 import type { Place, RiderDemand, RiderId } from './types.ts'
 
 export const PLACES: Record<string, Place> = {
-  taipeiMain: {
-    id: 'taipeiMain',
-    name: 'Taipei Main Station',
-    address: 'No. 3, Beiping W. Rd, Zhongzheng Dist, Taipei',
-    lat: 25.0478,
-    lng: 121.517,
-  },
-  banqiao: {
-    id: 'banqiao',
-    name: 'Banqiao Station',
-    address: 'No. 7, Sec. 2, Xianmin Blvd, Banqiao Dist, New Taipei',
-    lat: 25.0143,
-    lng: 121.4639,
-  },
-  xinzhuang: {
-    id: 'xinzhuang',
-    name: 'Xinzhuang Fuduxin',
-    address: 'Sec. 4, New Taipei Blvd, Xinzhuang Dist, New Taipei',
-    lat: 25.059,
-    lng: 121.4505,
-  },
-  zhonghe: {
-    id: 'zhonghe',
-    name: "Zhonghe Jing'an",
-    address: "Jing'an Rd, Zhonghe Dist, New Taipei",
-    lat: 24.9936,
-    lng: 121.5053,
-  },
-  nangang: {
-    id: 'nangang',
-    name: 'Nangang Exhibition Center',
-    address: 'No. 1, Jingmao 2nd Rd, Nangang Dist, Taipei',
-    lat: 25.0674,
-    lng: 121.6147,
-  },
-  songshanAirport: {
-    id: 'songshanAirport',
-    name: 'Songshan Airport',
-    address: 'No. 340-9, Dunhua N. Rd, Songshan Dist, Taipei',
-    lat: 25.0697,
-    lng: 121.5519,
-  },
-  taoyuanAirport: {
-    id: 'taoyuanAirport',
-    name: 'Taoyuan Airport T1',
-    address: 'No. 9, Hangzhan S. Rd, Dayuan Dist, Taoyuan',
-    lat: 25.0797,
-    lng: 121.234,
-  },
   nthuGym: {
     id: 'nthuGym',
     name: 'NTHU Gymnasium',
@@ -202,15 +153,6 @@ export const POSTER_RIDERS: Record<RiderId, RiderDemand> = {
     },
   },
 }
-
-export const RIDER_TINT: Record<RiderId, string> = {
-  A: '#FFD000',
-  B: '#5BA3C9',
-  C: '#3F8F6B',
-  D: '#E07A3D',
-}
-
-export const POOL_RIDERS: RiderDemand[] = [POSTER_RIDERS.B, POSTER_RIDERS.C, POSTER_RIDERS.D]
 
 export function cloneRider(id: RiderId): RiderDemand {
   const src = POSTER_RIDERS[id]

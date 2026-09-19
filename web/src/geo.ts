@@ -70,11 +70,33 @@ export function interpolate(points: LatLng[], t: number): LatLng {
 
 export function nearestOnLine(point: LatLng, line: LatLng[]): LatLng {
   if (line.length === 0) return point
-  return line.reduce((best, candidate) => {
-    const bestDist = (best.lat - point.lat) ** 2 + (best.lng - point.lng) ** 2
+  return line[nearestIndexOnLine(point, line)] ?? point
+}
+
+export function nearestIndexOnLine(point: LatLng, line: LatLng[]): number {
+  if (line.length === 0) return 0
+  return line.reduce((best, candidate, index) => {
+    const bestPoint = line[best]
+    if (!bestPoint) return index
+    const bestDist = (bestPoint.lat - point.lat) ** 2 + (bestPoint.lng - point.lng) ** 2
     const dist = (candidate.lat - point.lat) ** 2 + (candidate.lng - point.lng) ** 2
-    return dist < bestDist ? candidate : best
-  })
+    return dist < bestDist ? index : best
+  }, 0)
+}
+
+// 依起迄最近折點切一段。同一折點時留相鄰一節，避免線消失。
+export function clipPolyline(line: LatLng[], start: LatLng, end: LatLng): LatLng[] {
+  if (line.length < 2) return line
+  const i0 = nearestIndexOnLine(start, line)
+  const i1 = nearestIndexOnLine(end, line)
+  if (i0 === i1) {
+    const lo = Math.max(0, i0 - 1)
+    const hi = Math.min(line.length - 1, i0 + 1)
+    return line.slice(lo, hi + 1)
+  }
+  const lo = Math.min(i0, i1)
+  const hi = Math.max(i0, i1)
+  return line.slice(lo, hi + 1)
 }
 
 export function matchVias(origin: Place, dest: Place, count = 3): Place[] {

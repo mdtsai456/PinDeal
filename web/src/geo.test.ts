@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bookingStops, interpolate, nearestOnLine, nearestPlace, placeById, searchLocal, userBookingView } from './geo'
+import { bookingStops, clipPolyline, interpolate, nearestOnLine, nearestPlace, placeById, searchLocal, userBookingView } from './geo'
 
 describe('placeById', () => {
   it('returns Hsinchu Railway Station', () => {
@@ -20,7 +20,7 @@ describe('searchLocal', () => {
 
 describe('nearestPlace', () => {
   it('snaps to the nearest catalog place', () => {
-    expect(nearestPlace(25.0479, 121.5171).id).toBe('taipeiMain')
+    expect(nearestPlace(24.8018, 120.9717).id).toBe('hsinchuStation')
   })
 })
 
@@ -94,5 +94,27 @@ describe('interpolate', () => {
 
   it('returns the only point', () => {
     expect(interpolate([a], 0.8)).toEqual(a)
+  })
+})
+
+describe('clipPolyline', () => {
+  const line = [
+    { lat: 0, lng: 0 },
+    { lat: 1, lng: 0 },
+    { lat: 2, lng: 0 },
+    { lat: 3, lng: 0 },
+  ]
+
+  it('切到起迄最近的折點，含兩端', () => {
+    expect(clipPolyline(line, { lat: 1.1, lng: 0 }, { lat: 2.2, lng: 0 })).toEqual([
+      { lat: 1, lng: 0 },
+      { lat: 2, lng: 0 },
+    ])
+  })
+
+  it('同一折點時至少留相鄰一段', () => {
+    const slice = clipPolyline(line, { lat: 2, lng: 0 }, { lat: 2.05, lng: 0 })
+    expect(slice.length).toBeGreaterThanOrEqual(2)
+    expect(slice.some((point) => point.lat === 2)).toBe(true)
   })
 })

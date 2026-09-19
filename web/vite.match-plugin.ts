@@ -1,11 +1,11 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import path from 'node:path'
 import type { Plugin } from 'vite'
 import {
+  flushHold,
   isJoinMatchError,
   joinMatch,
-  readMatch,
   resetMatch,
 } from './server/matchStore.ts'
 import { findUserByUsername, openUsersDb, seedUsers } from './server/users.ts'
@@ -24,6 +24,12 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(body))
+}
+
+function sendHtml(res: ServerResponse, html: string): void {
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.end(html)
 }
 
 export function matchPlugin(apiKey: string): Plugin {
@@ -68,8 +74,18 @@ export function matchPlugin(apiKey: string): Plugin {
 
       server.middlewares.use((req: IncomingMessage, res: ServerResponse, next) => {
         const url = req.url?.split('?')[0] ?? ''
+        // 評審頁在 repo 根目錄。不可放進 web/public/。
+        if ((url === '/agent-theater' || url === '/agent-theater/') && req.method === 'GET') {
+          const htmlPath = path.resolve(import.meta.dirname, '../agent-theater/index.html')
+          const html = readFileSync(htmlPath, 'utf8')
+          void server
+            .transformIndexHtml(url, html)
+            .then((out) => sendHtml(res, out))
+            .catch(() => sendHtml(res, html))
+          return
+        }
         if (url === '/api/match' && req.method === 'GET') {
-          sendJson(res, 200, readMatch(matchFile))
+          void flushHold(matchFile, { apiKey }).then((record) => sendJson(res, 200, record))
           return
         }
         if (url === '/api/match/reset' && req.method === 'POST') {

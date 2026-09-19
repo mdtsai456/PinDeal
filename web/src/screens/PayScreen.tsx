@@ -4,12 +4,17 @@ import { readSessionUsername } from '../auth'
 import { MapCanvas } from '../components/MapCanvas'
 import { Screen } from '../components/Shell'
 import { fetchDrivingRoute, straightRoute, type DrivingRoute } from '../directions'
-import { bookingMapView } from '../engine/bookingMap'
+import { bookingMapView, sliceShareDrive } from '../engine/bookingMap'
 import { usernameForRider } from '../engine/match'
 import { fetchMatch } from '../engine/matchApi'
-import { ownRider, payView } from '../engine/matchView'
+import { ownWalkCircles, payView } from '../engine/matchView'
 import { placeById } from '../geo'
+import { youAreNthRiderCopy } from '../labels'
 import { useTrip } from '../TripContext'
+
+function sliceDrive(route: DrivingRoute, booking: ReturnType<typeof bookingMapView>): DrivingRoute {
+  return { ...route, polyline: sliceShareDrive(route.polyline, booking) }
+}
 
 function driveSummary(drive: DrivingRoute): string {
   const km = drive.distanceKm < 10 ? drive.distanceKm.toFixed(1) : String(Math.round(drive.distanceKm))
@@ -42,10 +47,7 @@ export function PayScreen() {
     straightRoute(booking.origin, booking.dest, booking.vias),
   )
   const view = match ? payView(match, username) : null
-  const me = match ? ownRider(match, username) : undefined
-  const walkCircles = me
-    ? { origin: me.routePage.originCircle, dest: me.routePage.destCircle }
-    : undefined
+  const walkCircles = ownWalkCircles(match, username, you)
 
   useEffect(() => {
     if (view) return
@@ -62,15 +64,15 @@ export function PayScreen() {
 
   useEffect(() => {
     let cancelled = false
-    const fallback = straightRoute(booking.origin, booking.dest, booking.vias)
+    const fallback = sliceDrive(straightRoute(booking.origin, booking.dest, booking.vias), booking)
     setDrive(fallback)
     void fetchDrivingRoute(booking.origin, booking.dest, booking.vias).then((route) => {
-      if (!cancelled) setDrive(route)
+      if (!cancelled) setDrive(sliceDrive(route, booking))
     })
     return () => {
       cancelled = true
     }
-  }, [booking.dest, booking.origin, booking.vias])
+  }, [booking])
 
   return (
     <Screen>
@@ -100,6 +102,9 @@ export function PayScreen() {
                   <PaxBadge count={view?.shareCount ?? 0} />
                 </h3>
                 <p className="taxi-eta">{driveSummary(drive)}</p>
+                {view && view.shareCount >= 2 ? (
+                  <p className="taxi-board">{youAreNthRiderCopy(username, booking.boardOrder)}</p>
+                ) : null}
                 {view?.plan && view.plan !== view.title ? <p>{view.plan}</p> : null}
                 <p className="taxi-ok">If no car is nearby, search expands to more taxis.</p>
               </div>

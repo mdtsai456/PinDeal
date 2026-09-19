@@ -1,3 +1,6 @@
+import { placeById } from '../geo'
+import type { RiderDemand } from '../types'
+import { riderCircles, type Circle } from './corridor'
 import type { MatchRecord, MatchRider, Username } from './match'
 
 export const THEATER_LINE_MS = 700
@@ -11,6 +14,18 @@ export type PayView = {
 
 export function ownRider(record: MatchRecord, username: Username): MatchRider | undefined {
   return record.riders.find((rider) => rider.username === username)
+}
+
+export function ownWalkCircles(
+  record: MatchRecord | null,
+  username: Username,
+  you: Pick<RiderDemand, 'originId' | 'destinationId' | 'maxWalkMin'>,
+): { origin: Circle; dest: Circle } {
+  const me = record ? ownRider(record, username) : undefined
+  if (me) {
+    return { origin: me.routePage.originCircle, dest: me.routePage.destCircle }
+  }
+  return riderCircles(placeById(you.originId), placeById(you.destinationId), you.maxWalkMin)
 }
 
 export function isMatchReady(record: MatchRecord, username: Username): boolean {

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { cloneRider } from '../data'
 import {
   DEMO_CRUISE_KMH,
   delaySecFromTrip,
   extraDistanceJumps,
   HSINCHU_TAXI,
   hsinchuMeter,
+  soloFareFromDemand,
   waitJumps,
 } from './taxiTariff'
 
@@ -58,6 +60,14 @@ describe('hsinchuMeter', () => {
   it('延滯與夜間可加在距離之上', () => {
     expect(hsinchuMeter({ distanceKm: 1.25, delaySec: 80 })).toBe(105)
     expect(hsinchuMeter({ distanceKm: 1.25, night: true })).toBe(120)
+  })
+})
+
+describe('soloFareFromDemand', () => {
+  it('Yu 預設新竹起迄不是 420', () => {
+    const fare = soloFareFromDemand(cloneRider('A'))
+    expect(fare).not.toBe(420)
+    expect(fare).toBeGreaterThan(0)
   })
 })
 

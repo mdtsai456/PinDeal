@@ -1,0 +1,2 @@
+# 此專案沒有 Python 套件。
+# 執行環境是 Node.js。套件清單在 web/package.json。

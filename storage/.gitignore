@@ -1,0 +1,4 @@
+*.sqlite
+matches/*.json
+!.gitkeep
+!matches/.gitkeep

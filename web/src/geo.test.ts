@@ -20,7 +20,7 @@ describe('searchLocal', () => {
 
 describe('nearestPlace', () => {
   it('snaps to the nearest catalog place', () => {
-    expect(nearestPlace(25.0479, 121.5171).id).toBe('taipeiMain')
+    expect(nearestPlace(24.8018, 120.9717).id).toBe('hsinchuStation')
   })
 })
 

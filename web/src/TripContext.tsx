@@ -3,27 +3,26 @@ import {
   useCallback,
   useContext,
   useMemo,
-  useReducer,
   useState,
   type ReactNode,
 } from 'react'
 import { clearSessionUsername, readSessionRiderId, readSessionUsername } from './auth'
-import { YOU_ID } from './data'
+import { cloneRider, YOU_ID } from './data'
 import { usernameForRider, type MatchRecord } from './engine/match'
 import { type JoinMatchResult, postMatchJoin } from './engine/matchApi'
 import { keepOwnMatch } from './engine/matchView'
 import type { MatchJoinBody } from './engine/routePage'
-import { initialTrip, tripReducer, type TripState } from './engine/trip'
-import type { IncidentKind, Place, RiderDemand, SavedSlot, SavedSlotId } from './types'
+import type { Place, RiderDemand, SavedSlot, SavedSlotId } from './types'
 
-type TripContextValue = TripState & {
+type TripContextValue = {
+  you: RiderDemand
+  paid: boolean
+  match: MatchRecord | null
   savedSlots: SavedSlot[]
   recents: Place[]
-  match: MatchRecord | null
   joinCurrentMatch: (body: MatchJoinBody) => Promise<JoinMatchResult>
   absorbMatch: (record: MatchRecord) => void
   pay: () => void
-  runIncident: (kind: IncidentKind) => void
   resetTrip: () => void
   logout: () => void
   setYou: (you: RiderDemand) => void
@@ -39,19 +38,20 @@ const EMPTY_SLOTS: SavedSlot[] = [
   { id: 'favorite', label: 'Favorite', place: null },
 ]
 
-function tripFromSession(): TripState {
-  return initialTrip(readSessionRiderId() ?? YOU_ID)
+function youFromSession(): RiderDemand {
+  return cloneRider(readSessionRiderId() ?? YOU_ID)
 }
 
 export function TripProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(tripReducer, undefined, tripFromSession)
+  const [you, setYou] = useState<RiderDemand>(youFromSession)
+  const [paid, setPaid] = useState(false)
+  const [match, setMatch] = useState<MatchRecord | null>(null)
   const [savedSlots, setSavedSlots] = useState<SavedSlot[]>(EMPTY_SLOTS)
   const [recents, setRecents] = useState<Place[]>([])
-  const [match, setMatch] = useState<MatchRecord | null>(null)
 
   const sessionUsername = useCallback(() => {
-    return readSessionUsername() ?? usernameForRider(state.you.id)
-  }, [state.you.id])
+    return readSessionUsername() ?? usernameForRider(you.id)
+  }, [you.id])
 
   const joinCurrentMatch = useCallback(async (body: MatchJoinBody) => {
     const result = await postMatchJoin(body)
@@ -66,10 +66,6 @@ export function TripProvider({ children }: { children: ReactNode }) {
     [sessionUsername],
   )
 
-  const setYou = useCallback((you: RiderDemand) => {
-    dispatch({ type: 'setYou', you })
-  }, [])
-
   const setSavedPlace = useCallback((id: SavedSlotId, place: Place) => {
     setSavedSlots((prev) => prev.map((slot) => (slot.id === id ? { ...slot, place } : slot)))
   }, [])
@@ -78,27 +74,33 @@ export function TripProvider({ children }: { children: ReactNode }) {
     setRecents((prev) => [place, ...prev.filter((item) => item.id !== place.id)].slice(0, 6))
   }, [])
 
+  const pay = useCallback(() => {
+    setPaid(true)
+  }, [])
+
   const resetTrip = useCallback(() => {
     setMatch(null)
-    dispatch({ type: 'reset' })
+    setPaid(false)
+    setYou((current) => cloneRider(current.id))
   }, [])
 
   const logout = useCallback(() => {
     clearSessionUsername()
     setMatch(null)
-    dispatch({ type: 'reset', youId: YOU_ID })
+    setPaid(false)
+    setYou(cloneRider(YOU_ID))
   }, [])
 
   const value = useMemo<TripContextValue>(
     () => ({
-      ...state,
+      you,
+      paid,
+      match,
       savedSlots,
       recents,
-      match,
       joinCurrentMatch,
       absorbMatch,
-      pay: () => dispatch({ type: 'pay' }),
-      runIncident: (kind) => dispatch({ type: 'incident', kind }),
+      pay,
       resetTrip,
       logout,
       setYou,
@@ -106,17 +108,16 @@ export function TripProvider({ children }: { children: ReactNode }) {
       pushRecent,
     }),
     [
-      state,
+      you,
+      paid,
       match,
-      joinCurrentMatch,
-      absorbMatch,
-      resetTrip,
-      logout,
-      setYou,
       savedSlots,
       recents,
-      setSavedPlace,
-      pushRecent,
+      joinCurrentMatch,
+      absorbMatch,
+      pay,
+      resetTrip,
+      logout,
     ],
   )
 

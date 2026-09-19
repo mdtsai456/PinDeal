@@ -1,19 +1,18 @@
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { groupHasCommonIntersection } from '../src/engine/corridor.ts'
 import {
   normalizeUsername,
   runMatch,
   USERNAME_TO_RIDER,
   USERNAMES,
   type MatchRecord,
-  type MatchRider,
   type MatchSeed,
   type Username,
 } from '../src/engine/match.ts'
-import { parseDemand } from '../src/engine/parse.ts'
-import { AGENT_SYSTEM_PROMPT, agentUserPromptV2 } from '../src/engine/prompts.ts'
-import type { MatchJoinBody, RoutePageSnapshot } from '../src/engine/routePage.ts'
+import { holdExpired } from '../src/engine/hold.ts'
+import { AGENT_SYSTEM_PROMPT, agentUserPromptAdopted } from '../src/engine/prompts.ts'
+import type { MatchJoinBody } from '../src/engine/routePage.ts'
+import { planShareRoute } from '../src/engine/shareRoute.ts'
 import { rewriteMatchTheaters, type TheaterRewriteInput } from './theaterLlm.ts'
 
 export type TheaterRewriter = (
@@ -24,6 +23,7 @@ export type TheaterRewriter = (
 export type JoinMatchOptions = {
   apiKey?: string
   rewriteTheaters?: TheaterRewriter
+  nowMs?: number
 }
 
 export type JoinMatchErrorCode = 'walk_circles_miss' | 'match_full'
@@ -39,16 +39,6 @@ export class JoinMatchError extends Error {
   }
 }
 
-const BLANK_SLICE = {
-  walkMin: 0,
-  rideMin: 0,
-  fare: 0,
-  soloFare: 0,
-  soloRideMin: 0,
-  accessible: true,
-  luggageOk: true,
-} as const
-
 export function isJoinMatchError(value: unknown): value is JoinMatchError {
   if (typeof value !== 'object' || value === null) return false
   if (!('status' in value) || value.status !== 409) return false
@@ -61,17 +51,55 @@ export function emptyMatch(): MatchRecord {
     id: 'current',
     status: 'collecting',
     adopted: 'solo',
+    joins: [],
     riders: [],
+    sharePlan: null,
+    lastJoinAt: null,
   }
 }
 
 export function readMatch(filePath: string): MatchRecord {
   if (!existsSync(filePath)) return emptyMatch()
-  return JSON.parse(readFileSync(filePath, 'utf8')) as MatchRecord
+  return migrateMatch(JSON.parse(readFileSync(filePath, 'utf8')) as MatchRecord)
+}
+
+// 舊 collecting 檔把空白 riders 升成 joins。升完後丟掉 riders。
+function migrateMatch(raw: MatchRecord): MatchRecord {
+  const riders = raw.riders ?? []
+  const joins = raw.joins ?? []
+  if (raw.status === 'collecting') {
+    const lifted = joins.length > 0 ? joins : riders.map(toJoinBody)
+    const lastJoinAt =
+      raw.lastJoinAt ?? (lifted.length > 0 ? new Date().toISOString() : null)
+    return {
+      ...raw,
+      joins: lifted,
+      riders: [],
+      sharePlan: null,
+      lastJoinAt,
+    }
+  }
+  return {
+    ...raw,
+    joins: joins.length > 0 ? joins : riders.map(toJoinBody),
+    riders,
+    sharePlan: raw.sharePlan ?? null,
+    lastJoinAt: raw.lastJoinAt ?? null,
+  }
 }
 
 export function resetMatch(filePath: string): void {
   if (existsSync(filePath)) unlinkSync(filePath)
+}
+
+export async function flushHold(
+  filePath: string,
+  options: JoinMatchOptions = {},
+): Promise<MatchRecord> {
+  const current = readMatch(filePath)
+  if (current.status !== 'collecting' || current.joins.length === 0) return current
+  if (!holdExpired(current.joins.length, current.lastJoinAt, nowOf(options))) return current
+  return settle(filePath, current.joins, options)
 }
 
 export async function joinMatch(
@@ -80,8 +108,8 @@ export async function joinMatch(
   options: JoinMatchOptions = {},
 ): Promise<MatchRecord> {
   const incoming = asJoinBody(body)
-  const current = readMatch(filePath)
-  const alreadyIn = current.riders.some((rider) => rider.username === incoming.username)
+  const current = await flushHold(filePath, options)
+  const alreadyIn = memberNames(current).includes(incoming.username)
   if (alreadyIn) {
     switch (current.status) {
       case 'settled':
@@ -95,14 +123,14 @@ export async function joinMatch(
       }
     }
   }
-  if (current.riders.length >= 4) {
+  if (memberCount(current) >= 4) {
     throw new JoinMatchError('match_full')
   }
 
   switch (current.status) {
     case 'settled':
     case 'solo': {
-      const record = collectingRecord([incoming])
+      const record = collectingRecord([incoming], new Date(nowOf(options)).toISOString())
       writeMatch(filePath, record)
       return record
     }
@@ -121,20 +149,27 @@ function addToCollecting(
   incoming: MatchJoinBody,
   options: JoinMatchOptions,
 ): Promise<MatchRecord> {
-  const kept = current.riders.filter((rider) => rider.username !== incoming.username)
-  const pages = [...kept.map((rider) => rider.routePage), incoming.routePage]
-  if (!bothEndsFit(pages)) {
+  const alreadyIn = current.joins.some((join) => join.username === incoming.username)
+  const kept = current.joins.filter((join) => join.username !== incoming.username)
+  const joins = [...kept, incoming]
+  if (!alreadyIn && joins.length > 1 && planShareRoute(joins.map(toShareInput)) == null) {
     throw new JoinMatchError('walk_circles_miss')
   }
-
-  const joins = [...kept.map(toJoinBody), incoming]
-  if (joins.length === 1) {
-    const record = collectingRecord(joins)
+  if (alreadyIn) {
+    const record = collectingRecord(joins, current.lastJoinAt)
     writeMatch(filePath, record)
     return Promise.resolve(record)
   }
-
+  if (joins.length < 4) {
+    const record = collectingRecord(joins, new Date(nowOf(options)).toISOString())
+    writeMatch(filePath, record)
+    return Promise.resolve(record)
+  }
   return settle(filePath, joins, options)
+}
+
+function nowOf(options: JoinMatchOptions): number {
+  return options.nowMs ?? Date.now()
 }
 
 async function settle(
@@ -158,15 +193,12 @@ async function applyTheaterRewrite(
   const inputs: TheaterRewriteInput[] = record.riders.map((rider) => ({
     username: rider.username,
     systemPrompt: AGENT_SYSTEM_PROMPT,
-    userPrompt: agentUserPromptV2({
-      walkMin: rider.v2.walkMin,
-      rideMin: rider.v2.rideMin,
-      fare: rider.v2.fare,
+    userPrompt: agentUserPromptAdopted({
+      walkMin: rider.finalWalkMin,
+      rideMin: rider.finalRideMin,
+      fare: rider.finalFare,
       pitch: JSON.stringify(rider.pitch),
       outcome: rider.outcome,
-      finalWalkMin: rider.finalWalkMin,
-      finalRideMin: rider.finalRideMin,
-      finalFare: rider.finalFare,
     }),
     fallback: rider.theater,
   }))
@@ -186,44 +218,58 @@ function writeMatch(filePath: string, record: MatchRecord): void {
   writeFileSync(filePath, JSON.stringify(record, null, 2))
 }
 
-function collectingRecord(joins: MatchJoinBody[]): MatchRecord {
+function collectingRecord(joins: MatchJoinBody[], lastJoinAt: string | null): MatchRecord {
   return {
     id: 'current',
     status: 'collecting',
     adopted: 'solo',
-    riders: joins.map(toCollectingRider),
+    joins,
+    riders: [],
+    sharePlan: null,
+    lastJoinAt,
   }
 }
 
-function toCollectingRider(body: MatchJoinBody): MatchRider {
+function memberNames(record: MatchRecord): Username[] {
+  switch (record.status) {
+    case 'collecting':
+      return record.joins.map((join) => join.username)
+    case 'settled':
+    case 'solo':
+      return record.riders.map((rider) => rider.username)
+    default: {
+      const _exhaustive: never = record.status
+      return _exhaustive
+    }
+  }
+}
+
+function memberCount(record: MatchRecord): number {
+  switch (record.status) {
+    case 'collecting':
+      return record.joins.length
+    case 'settled':
+    case 'solo':
+      return record.riders.length
+    default: {
+      const _exhaustive: never = record.status
+      return _exhaustive
+    }
+  }
+}
+
+function toShareInput(body: MatchJoinBody) {
   return {
-    username: body.username,
     riderId: USERNAME_TO_RIDER[body.username],
-    routePage: body.routePage,
-    demand: body.demand,
-    structured: parseDemand(body.demand),
-    v1: { ...BLANK_SLICE },
-    v2: { ...BLANK_SLICE },
-    scoreV1: 0,
-    scoreV2: 0,
-    pitch: { axis: 'fare', give: 'walk', note: '' },
-    theater: [],
-    kicked: false,
-    outcome: 'solo',
-    finalWalkMin: 0,
-    finalRideMin: 0,
-    finalFare: 0,
+    pickup: body.routePage.pickup,
+    dropoff: body.routePage.dropoff,
+    originCircle: body.routePage.originCircle,
+    destCircle: body.routePage.destCircle,
+    maxWalkMin: body.routePage.maxWalkMin,
   }
 }
 
-function bothEndsFit(pages: RoutePageSnapshot[]): boolean {
-  return (
-    groupHasCommonIntersection(pages.map((page) => page.originCircle)) &&
-    groupHasCommonIntersection(pages.map((page) => page.destCircle))
-  )
-}
-
-function toJoinBody(rider: MatchRider): MatchJoinBody {
+function toJoinBody(rider: Pick<MatchJoinBody, 'username' | 'demand' | 'routePage'>): MatchJoinBody {
   return {
     username: rider.username,
     demand: rider.demand,

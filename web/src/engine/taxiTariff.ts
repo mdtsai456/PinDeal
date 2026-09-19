@@ -1,3 +1,7 @@
+import { placeById } from '../geo.ts'
+import type { RiderDemand } from '../types.ts'
+import { haversineKm } from './corridor.ts'
+
 export const HSINCHU_TAXI = {
   flagNt: 100,
   flagKm: 1.25,
@@ -37,4 +41,15 @@ export function hsinchuMeter(input: {
   const wait = waitJumps(input.delaySec ?? 0) * HSINCHU_TAXI.waitNt
   const night = input.night ? HSINCHU_TAXI.nightExtraNt : 0
   return distance + wait + night
+}
+
+export function soloFareFromDemand(demand: RiderDemand): number {
+  const origin = placeById(demand.originId)
+  const dest = placeById(demand.destinationId)
+  const distanceKm = haversineKm(origin, dest)
+  const cruiseDurationMin = Math.max(1, Math.round((distanceKm / DEMO_CRUISE_KMH) * 60))
+  return hsinchuMeter({
+    distanceKm,
+    delaySec: delaySecFromTrip(distanceKm, cruiseDurationMin),
+  })
 }

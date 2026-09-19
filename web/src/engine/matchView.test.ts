@@ -99,13 +99,19 @@ const collecting: MatchRecord = {
   id: 'current',
   status: 'collecting',
   adopted: 'solo',
+  joins: [],
   riders: [rider('Yu', { theater: [], outcome: 'solo', finalFare: 0 })],
+  sharePlan: null,
+  lastJoinAt: null,
 }
 
 const settled: MatchRecord = {
   id: 'current',
   status: 'settled',
   adopted: 'v1',
+  joins: [],
+  sharePlan: null,
+  lastJoinAt: null,
   riders: [
     rider('Yu', {
       theater: ['I scored this shared plan against your walls only.', 'Your fare is NT$144.'],

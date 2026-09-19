@@ -5,6 +5,8 @@ import type { Place, RouteStop } from '../types'
 import type { MatchRecord, MatchRider, Username } from './match'
 import { USERNAME_TO_RIDER } from './match'
 import { bookingMapView } from './bookingMap'
+import { riderCircles } from './corridor'
+import { planShareRoute, type ShareRiderInput } from './shareRoute'
 
 const yuPickup = PLACES.hsinchuStation
 const yuDropoff = PLACES.nthuGym
@@ -127,47 +129,63 @@ function withWalkPlaces(
   }
 }
 
-const collecting: MatchRecord = {
-  id: 'current',
-  status: 'collecting',
-  adopted: 'solo',
-  riders: [withPlaces('Yu', yuPickup, yuDropoff, { theater: [], outcome: 'solo', finalFare: 0 })],
+function planFromShare(riders: MatchRider[]) {
+  const shareRiders = riders.filter((rider) => rider.outcome === 'share')
+  return planShareRoute(
+    shareRiders.map((rider) =>
+      shareInput(rider.riderId, rider.routePage.pickup, rider.routePage.dropoff, rider.routePage.maxWalkMin),
+    ),
+  )
 }
 
-const settled: MatchRecord = {
-  id: 'current',
-  status: 'settled',
-  adopted: 'v1',
-  riders: [
-    withPlaces('Yu', yuPickup, yuDropoff, {
-      theater: ['I scored this shared plan against your walls only.', 'Your fare is NT$144.'],
-      outcome: 'share',
-      finalFare: 144,
-    }),
-    withPlaces('Lin', linPickup, linDropoff, {
-      theater: ['Lin should never appear on Yu screen.', 'Your fare is NT$260.'],
-      outcome: 'share',
-      finalFare: 260,
-    }),
-    withPlaces('Chiang', chiangPickup, chiangDropoff, {
-      theater: ['Your fare is NT$280.'],
-      outcome: 'solo',
-      kicked: true,
-      finalFare: 280,
-    }),
-  ],
+function recordOf(
+  status: MatchRecord['status'],
+  riders: MatchRider[],
+  adopted: MatchRecord['adopted'] = 'v1',
+  sharePlan = planFromShare(riders),
+): MatchRecord {
+  return {
+    id: 'current',
+    status,
+    adopted,
+    joins: [],
+    riders,
+    sharePlan,
+    lastJoinAt: null,
+  }
 }
 
-const threeShare: MatchRecord = {
-  id: 'current',
-  status: 'settled',
-  adopted: 'v1',
-  riders: [
-    withPlaces('Yu', yuPickup, yuDropoff, { outcome: 'share' }),
-    withPlaces('Lin', linPickup, linDropoff, { outcome: 'share' }),
-    withPlaces('Chiang', chiangPickup, chiangDropoff, { outcome: 'share' }),
-  ],
-}
+const collecting: MatchRecord = recordOf(
+  'collecting',
+  [withPlaces('Yu', yuPickup, yuDropoff, { theater: [], outcome: 'solo', finalFare: 0 })],
+  'solo',
+  null,
+)
+
+const settled: MatchRecord = recordOf('settled', [
+  withPlaces('Yu', yuPickup, yuDropoff, {
+    theater: ['I scored this shared plan against your walls only.', 'Your fare is NT$144.'],
+    outcome: 'share',
+    finalFare: 144,
+  }),
+  withPlaces('Lin', linPickup, linDropoff, {
+    theater: ['Lin should never appear on Yu screen.', 'Your fare is NT$260.'],
+    outcome: 'share',
+    finalFare: 260,
+  }),
+  withPlaces('Chiang', chiangPickup, chiangDropoff, {
+    theater: ['Your fare is NT$280.'],
+    outcome: 'solo',
+    kicked: true,
+    finalFare: 280,
+  }),
+])
+
+const threeShare: MatchRecord = recordOf('settled', [
+  withPlaces('Yu', yuPickup, yuDropoff, { outcome: 'share' }),
+  withPlaces('Lin', linPickup, linDropoff, { outcome: 'share' }),
+  withPlaces('Chiang', chiangPickup, chiangDropoff, { outcome: 'share' }),
+])
 
 function stopKinds(view: ReturnType<typeof bookingMapView>) {
   return view.stops.map((stop) => stop.kind)
@@ -215,13 +233,15 @@ describe('bookingMapView fallback', () => {
   })
 
   it('付費人數少於 2 時退回自己兩點', () => {
-    const thin: MatchRecord = {
-      ...settled,
-      riders: [
+    const thin = recordOf(
+      'settled',
+      [
         withPlaces('Yu', yuPickup, yuDropoff, { outcome: 'share' }),
         withPlaces('Lin', linPickup, linDropoff, { outcome: 'solo', kicked: true }),
       ],
-    }
+      'v1',
+      null,
+    )
     const view = bookingMapView(thin, 'Yu', yuPickup, yuDropoff)
     expect(stopKinds(view)).toEqual(['pickup', 'dropoff'])
     expect(view.vias).toEqual([])
@@ -238,7 +258,7 @@ function walkEnds(view: ReturnType<typeof bookingMapView>) {
 }
 
 describe('bookingMapView shared path', () => {
-  it('三人同窗共用同一條車路端點，步行仍是自己門到扣點', () => {
+  it('三人同畫面共用同一條車路端點，步行仍是自己門到扣點', () => {
     const yu = bookingMapView(threeShare, 'Yu', yuPickup, yuDropoff)
     const lin = bookingMapView(threeShare, 'Lin', linPickup, linDropoff)
     const chiang = bookingMapView(threeShare, 'Chiang', chiangPickup, chiangDropoff)
@@ -259,7 +279,7 @@ describe('bookingMapView shared path', () => {
     expect([yu.boardOrder, lin.boardOrder, chiang.boardOrder]).not.toEqual([1, 1, 1])
   })
 
-  it('Yu 窗只標自己車上會遇到的同伴站，上車前與下車後的同伴不上圖', () => {
+  it('Yu 畫面只標自己車上會遇到的同伴站，上車前與下車後的同伴不上圖', () => {
     const yu = bookingMapView(threeShare, 'Yu', yuPickup, yuDropoff)
     expect(yu.stops.find((stop) => stop.kind === 'walkStart')?.placeId).toBe(yuPickup.id)
     expect(yu.stops.find((stop) => stop.kind === 'pickup')?.placeId).toBe('board-A')
@@ -341,13 +361,10 @@ describe('bookingMapView shared path', () => {
       lat: 24.804,
       lng: 120.968,
     }
-    const record: MatchRecord = {
-      ...settled,
-      riders: [
-        withPlaces('Yu', customPickup, yuDropoff, { outcome: 'share' }),
-        withPlaces('Lin', linPickup, linDropoff, { outcome: 'share' }),
-      ],
-    }
+    const record = recordOf('settled', [
+      withPlaces('Yu', customPickup, yuDropoff, { outcome: 'share' }),
+      withPlaces('Lin', linPickup, linDropoff, { outcome: 'share' }),
+    ])
     const view = bookingMapView(record, 'Yu', customPickup, yuDropoff)
     expect(placeById(customPickup.id).name).toBe('Custom Cafe')
     expect(placeById(view.origin.id).lat).toBeCloseTo(view.origin.lat)
@@ -357,7 +374,7 @@ describe('bookingMapView shared path', () => {
     expect(walkEnds(view).first).toEqual({ lat: customPickup.lat, lng: customPickup.lng })
   })
 
-  it('四人門距拉開時，同伴數字是本窗第幾個上／下車，不是第幾位', () => {
+  it('四人門距拉開時，同伴數字是本畫面第幾個上車或下車，不是乘客編號', () => {
     const yangP: Place = { id: 'yang-p', name: 'Yang door', address: '', lat: 24.8024, lng: 120.9712 }
     const chiangP: Place = { id: 'chiang-p', name: 'Chiang door', address: '', lat: 24.8019, lng: 120.9736 }
     const yuP: Place = { id: 'yu-p', name: 'Yu door', address: '', lat: 24.8018, lng: 120.9759 }
@@ -366,17 +383,16 @@ describe('bookingMapView shared path', () => {
     const chiangD: Place = { id: 'chiang-d', name: 'Chiang dest', address: '', lat: 24.7953, lng: 120.9952 }
     const yuD: Place = { id: 'yu-d', name: 'Yu dest', address: '', lat: 24.7956, lng: 120.9932 }
     const linD: Place = { id: 'lin-d', name: 'Lin dest', address: '', lat: 24.7964, lng: 120.9912 }
-    const fourShare: MatchRecord = {
-      id: 'current',
-      status: 'settled',
-      adopted: 'v2',
-      riders: [
+    const fourShare = recordOf(
+      'settled',
+      [
         withWalkPlaces('Yang', yangP, yangD, 10, { outcome: 'share' }),
         withWalkPlaces('Chiang', chiangP, chiangD, 6, { outcome: 'share' }),
         withWalkPlaces('Yu', yuP, yuD, 8, { outcome: 'share' }),
         withWalkPlaces('Lin', linP, linD, 10, { outcome: 'share' }),
       ],
-    }
+      'v2',
+    )
     const yang = bookingMapView(fourShare, 'Yang', yangP, yangD)
     const chiang = bookingMapView(fourShare, 'Chiang', chiangP, chiangD)
     const yu = bookingMapView(fourShare, 'Yu', yuP, yuD)
@@ -412,4 +428,41 @@ describe('bookingMapView shared path', () => {
     expect(peerStops(lin)).toEqual([])
     expect(peerStops(yang).some((stop) => stop.placeId === linP.id)).toBe(false)
   })
+
+  it('步行與扣點只讀 match.sharePlan，不重算走廊', () => {
+    const twoInputs = [
+      shareInput('A', yuPickup, yuDropoff, 8),
+      shareInput('B', linPickup, linDropoff, 8),
+    ]
+    const threeInputs = [...twoInputs, shareInput('C', chiangPickup, chiangDropoff, 8)]
+    const twoPlan = planShareRoute(twoInputs)
+    const threePlan = planShareRoute(threeInputs)
+    expect(twoPlan).not.toBeNull()
+    expect(threePlan).not.toBeNull()
+    expect(twoPlan?.byRider.A?.board).not.toEqual(threePlan?.byRider.A?.board)
+
+    const record = {
+      ...threeShare,
+      sharePlan: twoPlan,
+    }
+    const yu = bookingMapView(record, 'Yu', yuPickup, yuDropoff)
+    expect(yu.clipFrom).toEqual(twoPlan?.byRider.A?.board)
+    expect(yu.clipTo).toEqual(twoPlan?.byRider.A?.alight)
+    expect(yu.clipFrom).not.toEqual(threePlan?.byRider.A?.board)
+    const firstWalk = yu.walkPolylines[0]
+    expect(firstWalk?.[0]).toEqual({ lat: yuPickup.lat, lng: yuPickup.lng })
+    expect(firstWalk?.at(-1)).toEqual(twoPlan?.byRider.A?.board)
+  })
 })
+
+function shareInput(riderId: ShareRiderInput['riderId'], pickup: Place, dropoff: Place, maxWalkMin: number): ShareRiderInput {
+  const circles = riderCircles(pickup, dropoff, maxWalkMin)
+  return {
+    riderId,
+    pickup,
+    dropoff,
+    originCircle: circles.origin,
+    destCircle: circles.dest,
+    maxWalkMin,
+  }
+}

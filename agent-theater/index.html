@@ -217,125 +217,12 @@
         </div>
         <div></div>
       </header>
-      <main class="thread">
-        <div class="day">Today · 4 riders · doors spaced · ride slices overlap in part</div>
-
-        <div class="sys"><span>Structured packs arrived. Pickup circles meet. Dropoff circles meet.</span></div>
-
-        <section class="mind">
-          <p class="mind-head"><span class="mind-mark">◆</span> Arbiter mind · v1</p>
-          <p>Corridor first. Each agent snaps inside its own Max walk.</p>
-          <p>Solo meter: D NT$140 · C NT$130 · A NT$120 · B NT$105.</p>
-          <p>Shared meter = 0.72 × 495 = NT$356. Split by solo ratio.</p>
-          <p>v1 on the table. Waiting for one surplus pitch each.</p>
-        </section>
-
-        <div class="row">
-          <div class="avatar d">D</div>
-          <div class="col">
-            <p class="name">Agent D · direct → pitch</p>
-            <div class="bubble">
-              <p>Push a shorter ride. Give fare.</p>
-              <p>Walk 5 min to the corridor. Keep the detour short.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar c">C</div>
-          <div class="col">
-            <p class="name">Agent C · comfort → pitch</p>
-            <div class="bubble">
-              <p>Push a shorter walk. Give fare.</p>
-              <p>Walk 1 min. Trunk must stay available.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar a">A</div>
-          <div class="col">
-            <p class="name">Agent A · time → pitch</p>
-            <div class="bubble">
-              <p>Push on-time arrival. Give fare.</p>
-              <p>Walk 1 min. Keep the clock.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar b">B</div>
-          <div class="col">
-            <p class="name">Agent B · price → pitch</p>
-            <div class="bubble">
-              <p>Push fare. Give walk.</p>
-              <p>Walk can go to 4 min if the split stays cheap.</p>
-            </div>
-          </div>
-        </div>
-
-        <section class="mind">
-          <p class="mind-head"><span class="mind-mark">◆</span> Arbiter mind · v2</p>
-          <p>Four pitches in. Move surplus on each axis, take each give.</p>
-          <p>D ride −1, fare +8. C walk −1, fare +8. A ride −1, fare +8. B fare −8, walk +2.</p>
-          <p>Last slice eats residual so the meter stays NT$356.</p>
-          <p>Adopted fares: D NT$109 · C NT$101 · A NT$94 · B NT$52.</p>
-        </section>
-
-        <div class="row">
-          <div class="avatar d">D</div>
-          <div class="col">
-            <p class="name">Agent D · score</p>
-            <div class="bubble">
-              <p>v2 scores higher than v1. Yes.</p>
-              <p>Your fare is NT$109.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar c">C</div>
-          <div class="col">
-            <p class="name">Agent C · score</p>
-            <div class="bubble">
-              <p>v2 scores higher than v1. Yes.</p>
-              <p>Your fare is NT$101.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar a">A</div>
-          <div class="col">
-            <p class="name">Agent A · score</p>
-            <div class="bubble">
-              <p>v2 ties v1. Not a yes.</p>
-              <p>Your fare is NT$94.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="avatar b">B</div>
-          <div class="col">
-            <p class="name">Agent B · score</p>
-            <div class="bubble">
-              <p>v2 scores higher than v1. Yes.</p>
-              <p>Your fare is NT$52.</p>
-            </div>
-          </div>
-        </div>
-
-        <section class="mind">
-          <p class="mind-head"><span class="mind-mark">◆</span> Arbiter mind · close</p>
-          <p>Yes votes 3 / 4. Majority for 4 riders is 3. Adopt v2.</p>
-          <p>No wall kick. Board order D 1 · C 2 · A 3 · B 4. Ride slices overlap only in part.</p>
-        </section>
-      </main>
+      <main class="thread"></main>
       <footer>
         <input disabled value="Riders cannot type here" />
         <button type="button" disabled>↑</button>
       </footer>
     </div>
+    <script type="module" src="/src/judgeMain.ts"></script>
   </body>
 </html>

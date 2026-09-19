@@ -13,7 +13,7 @@ type OpenRouterChat = {
   choices?: { message?: { content?: string } }[]
 }
 
-function readTheater(content: string): string[] | null {
+export function readTheater(content: string): string[] | null {
   const trimmed = content.trim().replace(/^```(?:json)?\s*|\s*```$/g, '')
   try {
     const parsed = JSON.parse(trimmed) as { theater?: unknown }
@@ -57,9 +57,5 @@ export async function rewriteMatchTheaters(
   apiKey: string,
   riders: TheaterRewriteInput[],
 ): Promise<string[][]> {
-  const next: string[][] = []
-  for (const rider of riders) {
-    next.push(await rewriteTheater(apiKey, rider))
-  }
-  return next
+  return Promise.all(riders.map((rider) => rewriteTheater(apiKey, rider)))
 }

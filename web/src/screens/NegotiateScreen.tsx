@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { readSessionUsername } from '../auth'
 import { Screen } from '../components/Shell'
+import { holdWaitLine } from '../engine/hold'
 import { usernameForRider } from '../engine/match'
 import { fetchMatch, MATCH_POLL_MS } from '../engine/matchApi'
 import { canSkipToPay, isMatchReady, ownTheater, THEATER_LINE_MS } from '../engine/matchView'
 import { useTrip } from '../TripContext'
+
+const HOLD_TICK_MS = 500
 
 export function NegotiateScreen() {
   const navigate = useNavigate()
@@ -14,6 +17,11 @@ export function NegotiateScreen() {
   const ready = match != null && isMatchReady(match, username)
   const lines = match && ready ? ownTheater(match, username) : []
   const [shown, setShown] = useState(0)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const waitCopy =
+    match != null && match.status === 'collecting'
+      ? holdWaitLine(match.joins.length, match.lastJoinAt, nowMs)
+      : ''
 
   useEffect(() => {
     if (ready) return
@@ -35,6 +43,14 @@ export function NegotiateScreen() {
       window.clearInterval(timer)
     }
   }, [absorbMatch, ready])
+
+  useEffect(() => {
+    if (ready) return
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, HOLD_TICK_MS)
+    return () => window.clearInterval(timer)
+  }, [ready])
 
   useEffect(() => {
     if (!ready) {
@@ -77,6 +93,9 @@ export function NegotiateScreen() {
           <>
             <div className="spin" aria-hidden />
             <h2>Waiting for nearby riders</h2>
+            {waitCopy ? (
+              <p aria-live="polite">{waitCopy}</p>
+            ) : null}
           </>
         )}
         <button type="button" className="ghost-btn" disabled={!canSkipToPay(match, username)} onClick={onSkip}>

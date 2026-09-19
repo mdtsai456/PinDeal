@@ -32,7 +32,7 @@ describe('straightRoute', () => {
 
   it('adds via length into the fallback', () => {
     const direct = straightRoute(PLACES.hsinchuStation, PLACES.nthuGym)
-    const withVia = straightRoute(PLACES.hsinchuStation, PLACES.nthuGym, [PLACES.taipeiMain])
+    const withVia = straightRoute(PLACES.hsinchuStation, PLACES.nthuGym, [PLACES.hsinchuDongmen])
     expect(withVia.polyline).toHaveLength(3)
     expect(withVia.distanceKm).toBeGreaterThan(direct.distanceKm)
   })

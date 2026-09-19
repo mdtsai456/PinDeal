@@ -28,7 +28,7 @@ export type ShareRoutePlan = {
   byRider: Partial<Record<RiderId, ShareRiderSnap>>
 }
 
-// 門到扣點的步行分鐘。速度與圓半徑同一常數。
+// 速度與圓半徑同一常數。
 export function walkMinBetween(from: LatLng, to: LatLng): number {
   return Math.max(0, Math.ceil(haversineKm(from, to) / (WALK_M_PER_MIN / 1000)))
 }

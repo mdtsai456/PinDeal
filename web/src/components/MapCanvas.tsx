@@ -1,14 +1,12 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import viaPinUrl from '../assets/via-pin.svg?url'
-import { RIDER_TINT } from '../data'
 import { nearestOnLine, placeById } from '../geo'
 import { cardRect, iconLayout, pickCardSide, pointAlongPath, sampleLine, type CardSide, type Pt, type Rect } from '../mapCards'
-import { stopMark } from '../labels'
 import type { Circle } from '../engine/corridor'
-import type { LatLng, RiderId, RouteStop } from '../types'
+import type { LatLng, RouteStop } from '../types'
 
-type MapVariant = 'pins' | 'booking' | 'direct'
+type MapVariant = 'booking' | 'direct'
 
 type MapCanvasProps = {
   stops: RouteStop[]
@@ -82,32 +80,6 @@ function paintDirectStops(map: L.Map, layer: L.LayerGroup, stops: RouteStop[], p
       keyboard: false,
       pane: 'fixedLabels',
     }).addTo(layer)
-  })
-}
-
-function iconFor(variant: MapVariant, item: RouteStop, label: string, side: CardSide = 'e'): L.DivIcon {
-  switch (variant) {
-    case 'direct':
-      return originCardIcon(item.kind === 'dropoff' ? 'dropoff' : 'pickup', label, side)
-    case 'booking':
-      return bookingIcon(item)
-    case 'pins':
-      return stopIcon(item.riderId, item.kind)
-    default: {
-      const _exhaustive: never = variant
-      return _exhaustive
-    }
-  }
-}
-
-function stopIcon(riderId: RiderId, kind: RouteStop['kind']): L.DivIcon {
-  const tint = RIDER_TINT[riderId]
-  const mark = stopMark(kind)
-  return L.divIcon({
-    className: 'pin',
-    html: `<div class="pin-dot" style="background:${tint}"><b>${riderId}</b><i>${mark}</i></div>`,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
   })
 }
 
@@ -220,7 +192,7 @@ export function MapCanvas({
   taxi,
   you,
   interactive = false,
-  variant = 'pins',
+  variant = 'direct',
   onPick,
   walkCircles,
   walkPolylines = [],
@@ -263,7 +235,7 @@ export function MapCanvas({
         subdomains: light ? 'abcd' : 'abc',
       },
     ).addTo(map)
-    map.setView([25.0478, 121.517], 12)
+    map.setView([24.8018, 120.9717], 14)
     if (!map.getPane('fixedLabels')) {
       const pane = map.createPane('fixedLabels')
       pane.style.zIndex = '650'
@@ -319,13 +291,9 @@ export function MapCanvas({
     }
     if (polyline.length > 1) {
       const latlngs = polyline.map((point) => [point.lat, point.lng] as L.LatLngExpression)
-      if (variant === 'direct' || variant === 'booking') {
-        const weight = variant === 'direct' ? 4 : 5
-        casingRef.current = L.polyline(latlngs, { color: '#FFFFFF', weight: weight + 3, opacity: 0.95 }).addTo(map)
-        lineRef.current = L.polyline(latlngs, { color: '#1A73E8', weight, opacity: 1 }).addTo(map)
-      } else {
-        lineRef.current = L.polyline(latlngs, { color: '#12151A', weight: 4, opacity: 0.85 }).addTo(map)
-      }
+      const weight = variant === 'direct' ? 4 : 5
+      casingRef.current = L.polyline(latlngs, { color: '#FFFFFF', weight: weight + 3, opacity: 0.95 }).addTo(map)
+      lineRef.current = L.polyline(latlngs, { color: '#1A73E8', weight, opacity: 1 }).addTo(map)
     }
 
     const dashes = variant === 'booking' ? bookingWalks(stops, polyline) : walkPolylines
@@ -341,7 +309,7 @@ export function MapCanvas({
       })
     }
 
-    const fitPad: L.PointExpression = variant === 'direct' || variant === 'booking' ? [48, 52] : [36, 44]
+    const fitPad: L.PointExpression = [48, 52]
     const fitLine = () => {
       const size = map.getSize()
       if (size.x < 8 || size.y < 8) return
@@ -364,9 +332,9 @@ export function MapCanvas({
       }
       stops.forEach((item) => {
         const place = placeById(item.placeId)
-        const point = variant === 'booking' ? bookingPoint(item, place, polyline) : place
+        const point = bookingPoint(item, place, polyline)
         L.marker([point.lat, point.lng], {
-          icon: iconFor(variant, item, place.name),
+          icon: bookingIcon(item),
           keyboard: false,
         }).addTo(layer)
       })

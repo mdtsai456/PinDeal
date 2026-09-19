@@ -3,7 +3,6 @@ import type { LatLng, Place, RiderId, RouteStop, StopKind } from '../types.ts'
 import { haversineKm, projectOntoSegment } from './corridor.ts'
 import type { MatchRecord, MatchRider, Username } from './match.ts'
 import { ownRider, sharePaxCount } from './matchView.ts'
-import { planShareRoute, type ShareRiderInput } from './shareRoute.ts'
 
 export type BookingMapView = {
   origin: Place
@@ -16,7 +15,7 @@ export type BookingMapView = {
   clipTo?: LatLng
 }
 
-// 各窗仍請求同一條走廊車路，顯示時切到自己上車到下車。
+// 每個畫面請求同一條走廊車路。顯示時只切自己上車到下車的路段。
 export function sliceShareDrive(polyline: LatLng[], booking: Pick<BookingMapView, 'clipFrom' | 'clipTo'>): LatLng[] {
   if (!booking.clipFrom || !booking.clipTo) return polyline
   return clipPolyline(polyline, booking.clipFrom, booking.clipTo)
@@ -36,7 +35,7 @@ type SpineStop = {
   order: number
 }
 
-// 把成交檔收成付款與追蹤地圖。共乘時各窗同一條車路，步行是自己門到扣點。
+// 把成交檔收成付款與追蹤地圖。共乘時每個畫面同一條車路。步行是自己門到扣點。
 export function bookingMapView(
   match: MatchRecord | null,
   username: Username,
@@ -74,7 +73,7 @@ function settledView(
   }
 
   const shareRiders = match.riders.filter((rider) => isShareOutcome(rider.outcome))
-  const plan = planShareRoute(shareRiders.map(shareInputOf))
+  const plan = match.sharePlan
   const mine = plan?.byRider[me.riderId]
   if (!plan || !mine) return ownSoloView(origin, dest)
 
@@ -111,7 +110,7 @@ function settledView(
 
   const ownPickup = rememberPlace(me.routePage.pickup)
   const ownDropoff = rememberPlace(me.routePage.dropoff)
-  // 同伴數字是本窗第幾個上／下車，不含自己，避免標出第幾位去哪。
+  // 同伴數字是本畫面第幾個上車或下車。數字不含自己。數字不是乘客編號。
   const peers = [
     ...numberStops(boards.filter((stop) => stop.riderId !== me.riderId && onOwnRide(stop, ownBoard, ownAlight))),
     ...numberStops(alights.filter((stop) => stop.riderId !== me.riderId && onOwnRide(stop, ownBoard, ownAlight))),
@@ -138,17 +137,6 @@ function onOwnRide(item: Pick<SpineStop, 't'>, ownBoard: Pick<SpineStop, 't'>, o
   const lo = Math.min(ownBoard.t, ownAlight.t)
   const hi = Math.max(ownBoard.t, ownAlight.t)
   return item.t >= lo && item.t <= hi
-}
-
-function shareInputOf(rider: MatchRider): ShareRiderInput {
-  return {
-    riderId: rider.riderId,
-    pickup: rider.routePage.pickup,
-    dropoff: rider.routePage.dropoff,
-    originCircle: rider.routePage.originCircle,
-    destCircle: rider.routePage.destCircle,
-    maxWalkMin: rider.routePage.maxWalkMin,
-  }
 }
 
 function placedStop(

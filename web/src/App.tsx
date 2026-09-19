@@ -31,8 +31,6 @@ export default function App() {
             <Route path="/account" element={<AccountScreen />} />
             <Route path="/ride/demand" element={<DemandScreen />} />
             <Route path="/ride/details" element={<DetailsScreen />} />
-            <Route path="/ride/parse" element={<Navigate to="/ride/negotiate" replace />} />
-            <Route path="/ride/routes" element={<Navigate to="/ride/negotiate" replace />} />
             <Route path="/ride/negotiate" element={<NegotiateScreen />} />
             <Route path="/ride/pay" element={<PayScreen />} />
             <Route path="/ride/track" element={<TrackScreen />} />

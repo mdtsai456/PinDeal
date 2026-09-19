@@ -21,7 +21,6 @@
   },
   "include": [
     "vite.config.ts",
-    "vite.parse-plugin.ts",
     "vite.match-plugin.ts",
     "server/**/*.ts"
   ],

@@ -56,7 +56,13 @@ describe('postMatchJoin', () => {
   })
 
   it('成功回傳團檔', async () => {
-    const record = { id: 'current', status: 'collecting', adopted: 'solo', riders: [] }
+    const record = {
+      id: 'current',
+      status: 'collecting',
+      adopted: 'solo',
+      riders: [],
+      lastJoinAt: null,
+    }
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => record,
@@ -112,7 +118,13 @@ describe('fetchMatch', () => {
   })
 
   it('GET /api/match', async () => {
-    const record = { id: 'current', status: 'collecting', adopted: 'solo', riders: [] }
+    const record = {
+      id: 'current',
+      status: 'collecting',
+      adopted: 'solo',
+      riders: [],
+      lastJoinAt: null,
+    }
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => record,

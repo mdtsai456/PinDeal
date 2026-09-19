@@ -1,9 +1,7 @@
-import { placeById } from '../geo.ts'
 import type { RiderDemand, RiderId, StructuredDemand, Username } from '../types.ts'
-import { haversineKm } from './corridor.ts'
 import { parseDemand } from './parse.ts'
-import { snapshotRoutePage, type RoutePageSnapshot } from './routePage.ts'
-import { planShareRoute } from './shareRoute.ts'
+import type { MatchJoinBody, RoutePageSnapshot } from './routePage.ts'
+import { planShareRoute, type ShareRoutePlan } from './shareRoute.ts'
 import { delaySecFromTrip, hsinchuMeter } from './taxiTariff.ts'
 import { buildTheater } from './theater.ts'
 
@@ -53,13 +51,16 @@ export type MatchRecord = {
   id: string
   status: MatchStatus
   adopted: 'v1' | 'v2' | 'solo'
+  joins: MatchJoinBody[]
   riders: MatchRider[]
+  sharePlan: ShareRoutePlan | null
+  lastJoinAt: string | null
 }
 
 export type MatchSeed = {
   username: Username
   demand: RiderDemand
-  routePage?: RoutePageSnapshot
+  routePage: RoutePageSnapshot
 }
 
 export type WallInput = {
@@ -81,7 +82,6 @@ export const USERNAME_TO_RIDER: Record<Username, RiderId> = {
 const FARE_NUDGE = 8
 const WALK_GIVE_MIN = 2
 const SHARE_METER_RATIO = 0.72
-const V1_WALK_CAP = 4
 const V1_RIDE_EXTRA_CAP = 4
 
 export function normalizeUsername(raw: string): string {
@@ -107,7 +107,7 @@ export function usernameForRider(id: RiderId): Username {
   }
 }
 
-// 牆：walkMin > maxWalkMin。rideMin > soloRideMin + maxDetourMin。需要 accessibility 但 accessible 為 false。luggageCount >= 2 但 luggageOk 為 false。fare >= soloFare。任一成立即踢出。
+// wall：walkMin > maxWalkMin。rideMin > soloRideMin + maxDetourMin。需要 accessibility 但 accessible 為 false。luggageCount >= 2 但 luggageOk 為 false。fare >= soloFare。任一成立即踢出。
 export function hitsWall(offer: OfferSlice, walls: WallInput): boolean {
   if (offer.walkMin > walls.maxWalkMin) return true
   if (offer.rideMin > offer.soloRideMin + walls.maxDetourMin) return true
@@ -177,36 +177,59 @@ export function pitchFromDemand(demand: RiderDemand): Pitch {
 
 export function runMatch(seeds: MatchSeed[]): MatchRecord {
   const prepared = seeds.map((seed) => prepareRider(seed))
+  const joins = prepared.map(toJoin)
   if (prepared.length < 2) {
     return {
       id: 'current',
       status: 'solo',
       adopted: 'solo',
+      joins,
       riders: prepared.map((rider) => withTheater(toSolo(rider))),
+      sharePlan: null,
+      lastJoinAt: null,
     }
   }
 
-  const scored = scoreBothVersions(assignV2(assignV1(prepared)))
+  const plan = sharePlanOf(prepared)
+  if (!plan) {
+    return {
+      id: 'current',
+      status: 'solo',
+      adopted: 'solo',
+      joins,
+      riders: prepared.map((rider) => withTheater(toSolo(rider))),
+      sharePlan: null,
+      lastJoinAt: null,
+    }
+  }
+
+  const scored = scoreBothVersions(assignV2(assignV1(prepared, plan)))
   const adopted = adoptVersion(
     scored.map((rider) => rider.scoreV1),
     scored.map((rider) => rider.scoreV2),
   )
   const opened = scored.map((rider) => applyAdopted(rider, adopted))
-  const settled = silentRecompute(opened)
-  const remaining = settled.filter((rider) => !rider.kicked)
+  const recomputed = silentRecompute(opened, plan)
+  const remaining = recomputed.riders.filter((rider) => !rider.kicked)
   if (remaining.length < 2) {
     return {
       id: 'current',
       status: 'solo',
       adopted: 'solo',
-      riders: settled.map((rider) => withTheater(toSolo(rider))),
+      joins,
+      riders: recomputed.riders.map((rider) => withTheater(toSolo(rider))),
+      sharePlan: null,
+      lastJoinAt: null,
     }
   }
   return {
     id: 'current',
     status: 'settled',
     adopted,
-    riders: settled.map((rider) => withTheater(rider)),
+    joins,
+    riders: recomputed.riders.map((rider) => withTheater(rider)),
+    sharePlan: recomputed.sharePlan,
+    lastJoinAt: null,
   }
 }
 
@@ -220,25 +243,6 @@ function soloFareFromPage(page: RoutePageSnapshot): number {
     distanceKm: page.soloDistanceKm,
     delaySec: delaySecFromTrip(page.soloDistanceKm, page.soloDurationMin),
     night: false,
-  })
-}
-
-function resolveRoutePage(demand: RiderDemand, routePage?: RoutePageSnapshot): RoutePageSnapshot {
-  if (routePage) return routePage
-  const pickup = placeById(demand.originId)
-  const dropoff = placeById(demand.destinationId)
-  const soloDistanceKm = haversineKm(pickup, dropoff)
-  return snapshotRoutePage({
-    pickup,
-    dropoff,
-    soloDurationMin: Math.max(1, Math.round((soloDistanceKm / 28) * 60)),
-    soloDistanceKm,
-    extraTimeMin: demand.maxDetourMin,
-    maxWalkMin: demand.maxWalkMin,
-    bags: demand.luggageCount,
-    accessible: demand.accessibility,
-    extraPay: demand.extraPay,
-    notes: demand.rawText,
   })
 }
 
@@ -264,7 +268,7 @@ function emptySlice(soloRideMin: number, soloFare: number): OfferSlice {
 }
 
 function prepareRider(seed: MatchSeed): MatchRider {
-  const routePage = resolveRoutePage(seed.demand, seed.routePage)
+  const routePage = seed.routePage
   const soloRideMin = routePage.soloDurationMin
   const soloFare = soloFareFromPage(routePage)
   const blank = emptySlice(soloRideMin, soloFare)
@@ -288,23 +292,41 @@ function prepareRider(seed: MatchSeed): MatchRider {
   }
 }
 
-function assignV1(riders: MatchRider[]): MatchRider[] {
+function shareInputsOf(riders: MatchRider[]) {
+  return riders.map((rider) => ({
+    riderId: rider.riderId,
+    pickup: rider.routePage.pickup,
+    dropoff: rider.routePage.dropoff,
+    originCircle: rider.routePage.originCircle,
+    destCircle: rider.routePage.destCircle,
+    maxWalkMin: rider.routePage.maxWalkMin,
+  }))
+}
+
+function sharePlanOf(riders: MatchRider[]): ShareRoutePlan | null {
+  const plan = planShareRoute(shareInputsOf(riders))
+  if (!plan) return null
+  if (riders.some((rider) => plan.byRider[rider.riderId] == null)) return null
+  return plan
+}
+
+function toJoin(rider: MatchRider): MatchJoinBody {
+  return {
+    username: rider.username,
+    demand: rider.demand,
+    routePage: rider.routePage,
+  }
+}
+
+function assignV1(riders: MatchRider[], plan: ShareRoutePlan): MatchRider[] {
   const solos = riders.map((rider) => rider.v1.soloFare)
   const totalMeter = Math.round(SHARE_METER_RATIO * solos.reduce((acc, fare) => acc + fare, 0))
   const fares = splitBySolo(solos, totalMeter)
-  const plan = planShareRoute(
-    riders.map((rider) => ({
-      riderId: rider.riderId,
-      pickup: rider.routePage.pickup,
-      dropoff: rider.routePage.dropoff,
-      originCircle: rider.routePage.originCircle,
-      destCircle: rider.routePage.destCircle,
-      maxWalkMin: rider.routePage.maxWalkMin,
-    })),
-  )
   return riders.map((rider, index) => {
-    const snapWalk = plan?.byRider[rider.riderId]?.walkMin
-    const walkMin = snapWalk ?? Math.min(V1_WALK_CAP, rider.routePage.maxWalkMin)
+    const walkMin = plan.byRider[rider.riderId]?.walkMin
+    if (walkMin == null) {
+      return rider
+    }
     const rideMin = rider.v1.soloRideMin + Math.min(V1_RIDE_EXTRA_CAP, rider.routePage.extraTimeMin)
     return {
       ...rider,
@@ -393,8 +415,12 @@ function applyAdopted(rider: MatchRider, adopted: 'v1' | 'v2'): MatchRider {
   }
 }
 
-function silentRecompute(riders: MatchRider[]): MatchRider[] {
+function silentRecompute(
+  riders: MatchRider[],
+  initialPlan: ShareRoutePlan,
+): { riders: MatchRider[]; sharePlan: ShareRoutePlan | null } {
   let current = riders
+  let sharePlan: ShareRoutePlan | null = initialPlan
   for (let pass = 0; pass < 4; pass += 1) {
     const marked = current.map((rider) => {
       if (rider.kicked) return rider
@@ -408,10 +434,15 @@ function silentRecompute(riders: MatchRider[]): MatchRider[] {
       return { ...toSolo(rider), kicked: true }
     })
     const remaining = marked.filter((rider) => !rider.kicked)
-    if (remaining.length < 2) return marked
+    if (remaining.length < 2) return { riders: marked, sharePlan: null }
     const before = current.filter((rider) => rider.kicked).length
     const after = marked.filter((rider) => rider.kicked).length
-    if (after === before) return marked
+    if (after === before) return { riders: marked, sharePlan }
+    const nextPlan = sharePlanOf(remaining)
+    if (!nextPlan) {
+      return { riders: marked.map((rider) => ({ ...toSolo(rider), kicked: true })), sharePlan: null }
+    }
+    sharePlan = nextPlan
     const solos = remaining.map((rider) => rider.v1.soloFare)
     const totalMeter = Math.round(SHARE_METER_RATIO * solos.reduce((acc, fare) => acc + fare, 0))
     const fares = splitBySolo(solos, totalMeter)
@@ -419,11 +450,12 @@ function silentRecompute(riders: MatchRider[]): MatchRider[] {
     current = marked.map((rider) => {
       if (rider.kicked) return rider
       const fare = fares[cursor] ?? rider.finalFare
+      const walkMin = nextPlan.byRider[rider.riderId]?.walkMin ?? rider.finalWalkMin
       cursor += 1
-      return { ...rider, outcome: 'share', finalFare: fare }
+      return { ...rider, outcome: 'share', finalWalkMin: walkMin, finalFare: fare }
     })
   }
-  return current
+  return { riders: current, sharePlan }
 }
 
 function toSolo(rider: MatchRider): MatchRider {

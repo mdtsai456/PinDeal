@@ -7,7 +7,7 @@ import { fetchDrivingRoute, straightRoute, type DrivingRoute } from '../directio
 import { bookingMapView, sliceShareDrive } from '../engine/bookingMap'
 import { usernameForRider } from '../engine/match'
 import { fetchMatch } from '../engine/matchApi'
-import { ownRider, payView } from '../engine/matchView'
+import { ownWalkCircles, payView } from '../engine/matchView'
 import { placeById } from '../geo'
 import { youAreNthRiderCopy } from '../labels'
 import { useTrip } from '../TripContext'
@@ -47,10 +47,7 @@ export function PayScreen() {
     straightRoute(booking.origin, booking.dest, booking.vias),
   )
   const view = match ? payView(match, username) : null
-  const me = match ? ownRider(match, username) : undefined
-  const walkCircles = me
-    ? { origin: me.routePage.originCircle, dest: me.routePage.destCircle }
-    : undefined
+  const walkCircles = ownWalkCircles(match, username, you)
 
   useEffect(() => {
     if (view) return

@@ -1,14 +1,17 @@
-import { NavLink } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { NavLink } from 'react-router-dom'
+import accountIcon from '../assets/icon-account.png'
+import homeIcon from '../assets/icon-home.png'
+import prefsIcon from '../assets/icon-prefs.png'
+import walletIcon from '../assets/icon-wallet.png'
+import logoUrl from '../assets/logo.png'
 
-function RoofLamp({ live }: { live?: boolean }) {
-  return (
-    <span className={`lamp ${live ? 'lamp-live' : ''}`} aria-hidden>
-      <span className="lamp-cap" />
-      <span className="lamp-body" />
-    </span>
-  )
-}
+const TABS = [
+  { to: '/', label: 'Home', icon: homeIcon, large: false },
+  { to: '/prefs', label: 'Prefs', icon: prefsIcon, large: true },
+  { to: '/wallet', label: 'Wallet', icon: walletIcon, large: false },
+  { to: '/account', label: 'Account', icon: accountIcon, large: false },
+] as const
 
 export function PhoneShell({ children }: { children: ReactNode }) {
   return (
@@ -16,7 +19,10 @@ export function PhoneShell({ children }: { children: ReactNode }) {
       <div className="phone">
         <div className="status-bar">
           <span>1:23</span>
-          <span className="status-mid">ShareMeter</span>
+          <span className="status-mid">
+            <img className="status-logo" src={logoUrl} alt="" />
+            PinDeal
+          </span>
           <span>4G  84%</span>
         </div>
         {children}
@@ -25,35 +31,35 @@ export function PhoneShell({ children }: { children: ReactNode }) {
   )
 }
 
-export function BrandMark({ live }: { live?: boolean }) {
+export function BrandMark() {
   return (
     <div className="brand">
-      <RoofLamp live={live} />
+      <img className="brand-logo" src={logoUrl} alt="" />
       <div>
         <p className="brand-kicker">Different starts. One meter.</p>
-        <h1 className="brand-name">ShareMeter</h1>
+        <h1 className="brand-name">PinDeal</h1>
       </div>
     </div>
   )
 }
 
 export function TabBar() {
-  const items = [
-    { to: '/', label: 'Home', icon: '⌂' },
-    { to: '/prefs', label: 'Prefs', icon: '☰' },
-    { to: '/wallet', label: 'Wallet', icon: '❒' },
-    { to: '/account', label: 'Account', icon: '☺' },
-  ]
   return (
     <nav className="tabbar" aria-label="Main">
-      {items.map((item) => (
+      {TABS.map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
           end={item.to === '/'}
           className={({ isActive }) => `tab ${isActive ? 'tab-on' : ''}`}
         >
-          <span className="tab-icon">{item.icon}</span>
+          <span className="tab-icon-slot">
+            <img
+              className={`tab-icon ${item.large ? 'tab-icon-lg' : ''}`}
+              src={item.icon}
+              alt=""
+            />
+          </span>
           {item.label}
         </NavLink>
       ))}

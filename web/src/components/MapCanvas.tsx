@@ -30,12 +30,19 @@ function escapeHtml(text: string): string {
     .replaceAll('"', '&quot;')
 }
 
+const PICKUP_CARD_ICO =
+  '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden><path d="M5 14V9.2A2.2 2.2 0 0 1 7.2 7h9.6A2.2 2.2 0 0 1 19 9.2V14M5 14h14v2.2A1.8 1.8 0 0 1 17.2 18H6.8A1.8 1.8 0 0 1 5 16.2V14Z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8.2" cy="16.2" r="1.1" fill="currentColor"/><circle cx="15.8" cy="16.2" r="1.1" fill="currentColor"/><path d="M8 7V5.6A1.6 1.6 0 0 1 9.6 4h4.8A1.6 1.6 0 0 1 16 5.6V7" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>'
+
+const DROPOFF_CARD_ICO =
+  '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden><path d="M3.5 10.5 12 6l8.5 4.5L12 15 3.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 12.4v4.1c1.6 1.1 3.2 1.6 5 1.6s3.4-.5 5-1.6v-4.1M12 15v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>'
+
 function originCardIcon(kind: 'pickup' | 'dropoff', label: string, side: CardSide): L.DivIcon {
   const role = kind === 'pickup' ? 'Pickup' : 'Dropoff'
+  const ico = kind === 'pickup' ? PICKUP_CARD_ICO : DROPOFF_CARD_ICO
   const layout = iconLayout(side)
   return L.divIcon({
     className: 'pin pin-fixed',
-    html: `<div class="direct-pin direct-pin-${side}"><div class="origin-dot origin-dot-${kind}"></div><div class="map-card"><span>${role}</span><b>${escapeHtml(label)}</b></div></div>`,
+    html: `<div class="direct-pin direct-pin-${side}"><div class="origin-dot origin-dot-${kind}"></div><div class="map-card"><i class="map-card-ico">${ico}</i><span class="map-card-copy"><em>${role}</em><b>${escapeHtml(label)}</b></span></div></div>`,
     iconSize: layout.size,
     iconAnchor: layout.anchor,
   })
@@ -62,7 +69,7 @@ function paintDirectStops(map: L.Map, layer: L.LayerGroup, stops: RouteStop[], p
   const origins = stops.filter((item) => item.kind === 'pickup' || item.kind === 'dropoff')
   const linePts = lineContainerPts(map, polyline)
   const dense = sampleLine(linePts)
-  const blocked: Rect[] = []
+  const blocked: Rect[] = [{ x: size.x - 48, y: size.y - 48, w: 42, h: 42 }]
   origins.forEach((item) => {
     const place = placeById(item.placeId)
     const dot = toPt(map.latLngToContainerPoint([place.lat, place.lng]))
@@ -209,6 +216,7 @@ export function MapCanvas({
   const walkLayerRef = useRef<L.LayerGroup | null>(null)
   const walkDashLayerRef = useRef<L.LayerGroup | null>(null)
   const onPickRef = useRef(onPick)
+  const fitRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     onPickRef.current = onPick
@@ -226,9 +234,16 @@ export function MapCanvas({
       doubleClickZoom: interactive,
       touchZoom: interactive,
     })
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map)
+    const light = variant === 'direct'
+    L.tileLayer(
+      light
+        ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        maxZoom: 19,
+        subdomains: light ? 'abcd' : 'abc',
+      },
+    ).addTo(map)
     map.setView([25.0478, 121.517], 12)
     if (!map.getPane('fixedLabels')) {
       const pane = map.createPane('fixedLabels')
@@ -256,7 +271,7 @@ export function MapCanvas({
       walkLayerRef.current = null
       walkDashLayerRef.current = null
     }
-  }, [interactive])
+  }, [interactive, variant])
 
   useEffect(() => {
     const map = mapRef.current
@@ -273,8 +288,9 @@ export function MapCanvas({
     if (polyline.length > 1) {
       const latlngs = polyline.map((point) => [point.lat, point.lng] as L.LatLngExpression)
       if (variant === 'direct' || variant === 'booking') {
-        casingRef.current = L.polyline(latlngs, { color: '#FFFFFF', weight: 8, opacity: 0.95 }).addTo(map)
-        lineRef.current = L.polyline(latlngs, { color: '#1A73E8', weight: 5, opacity: 1 }).addTo(map)
+        const weight = variant === 'direct' ? 4 : 5
+        casingRef.current = L.polyline(latlngs, { color: '#FFFFFF', weight: weight + 3, opacity: 0.95 }).addTo(map)
+        lineRef.current = L.polyline(latlngs, { color: '#1A73E8', weight, opacity: 1 }).addTo(map)
       } else {
         lineRef.current = L.polyline(latlngs, { color: '#12151A', weight: 4, opacity: 0.85 }).addTo(map)
       }
@@ -302,6 +318,7 @@ export function MapCanvas({
       points.forEach((point) => bounds.extend([point.lat, point.lng]))
       map.fitBounds(bounds, { padding: fitPad })
     }
+    fitRef.current = fitLine
     fitLine()
 
     const paintStops = () => {
@@ -379,5 +396,23 @@ export function MapCanvas({
     }
   }, [you])
 
-  return <div ref={hostRef} className="map-canvas" />
+  return (
+    <>
+      <div ref={hostRef} className="map-canvas" />
+      {variant === 'direct' ? (
+        <button type="button" className="map-locate" onClick={() => fitRef.current()} aria-label="Recenter">
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+            <path
+              d="M12 4v2.4M12 17.6V20M4 12h2.4M17.6 12H20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      ) : null}
+    </>
+  )
 }

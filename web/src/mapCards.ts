@@ -12,8 +12,8 @@ export type Rect = {
   h: number
 }
 
-export const CARD_W = 186
-export const CARD_H = 36
+export const CARD_W = 196
+export const CARD_H = 44
 export const CARD_GAP = 8
 export const DOT_R = 9
 
@@ -141,13 +141,13 @@ export function pickCardSide(
 export function iconLayout(side: CardSide): { size: LPoint; anchor: LPoint } {
   switch (side) {
     case 'e':
-      return { size: [210, 44], anchor: [9, 22] }
+      return { size: [220, 52], anchor: [9, 26] }
     case 'w':
-      return { size: [210, 44], anchor: [201, 22] }
+      return { size: [220, 52], anchor: [211, 26] }
     case 'n':
-      return { size: [210, 70], anchor: [105, 61] }
+      return { size: [220, 80], anchor: [110, 71] }
     case 's':
-      return { size: [210, 70], anchor: [105, 9] }
+      return { size: [220, 80], anchor: [110, 9] }
     default: {
       const _exhaustive: never = side
       return _exhaustive

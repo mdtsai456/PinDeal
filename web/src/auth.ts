@@ -1,7 +1,7 @@
 import { USERNAMES, USERNAME_TO_RIDER, normalizeUsername, type Username } from './engine/match'
 import type { RiderId } from './types'
 
-export const SESSION_USERNAME_KEY = 'sharemeter.username'
+export const SESSION_USERNAME_KEY = 'pindeal.username'
 
 export function isUsername(value: string): value is Username {
   return USERNAMES.some((name) => name === value)

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import viaPinUrl from '../assets/via-pin.svg?url'
-import { nearestOnLine, placeById } from '../geo'
+import { placeById } from '../geo'
 import { cardRect, iconLayout, pickCardSide, pointAlongPath, sampleLine, type CardSide, type Pt, type Rect } from '../mapCards'
 import type { Circle } from '../engine/corridor'
 import type { LatLng, RouteStop } from '../types'
+import { bookingStopPoint, walkFocusPoints, type WalkFocusEnd } from '../walkFocus'
 
 type MapVariant = 'booking' | 'direct'
 
@@ -144,24 +145,6 @@ function orderLabel(order?: number): string {
   return order == null ? '' : String(order)
 }
 
-function bookingPoint(item: RouteStop, place: { lat: number; lng: number }, polyline: LatLng[]): LatLng {
-  switch (item.kind) {
-    case 'meet':
-    case 'peerPickup':
-    case 'peerDropoff':
-    case 'pickup':
-    case 'dropoff':
-      return nearestOnLine(place, polyline)
-    case 'walkStart':
-    case 'walkEnd':
-      return place
-    default: {
-      const _exhaustive: never = item.kind
-      return _exhaustive
-    }
-  }
-}
-
 function bookingWalks(stops: RouteStop[], polyline: LatLng[]): LatLng[][] {
   const start = stops.find((stop) => stop.kind === 'walkStart')
   const pickup = stops.find((stop) => stop.kind === 'pickup')
@@ -169,12 +152,22 @@ function bookingWalks(stops: RouteStop[], polyline: LatLng[]): LatLng[][] {
   const end = stops.find((stop) => stop.kind === 'walkEnd')
   const legs: LatLng[][] = []
   if (start && pickup) {
-    legs.push([placeById(start.placeId), bookingPoint(pickup, placeById(pickup.placeId), polyline)])
+    legs.push([bookingStopPoint(start, polyline), bookingStopPoint(pickup, polyline)])
   }
   if (dropoff && end) {
-    legs.push([bookingPoint(dropoff, placeById(dropoff.placeId), polyline), placeById(end.placeId)])
+    legs.push([bookingStopPoint(dropoff, polyline), bookingStopPoint(end, polyline)])
   }
   return legs
+}
+
+function fitMapTo(map: L.Map, points: LatLng[], maxZoom?: number): void {
+  const size = map.getSize()
+  if (size.x < 8 || size.y < 8) return
+  const first = points[0]
+  if (!first) return
+  const bounds = L.latLngBounds([first.lat, first.lng], [first.lat, first.lng])
+  points.forEach((point) => bounds.extend([point.lat, point.lng]))
+  map.fitBounds(bounds, { padding: [56, 56], maxZoom })
 }
 
 function taxiIcon(): L.DivIcon {
@@ -309,17 +302,8 @@ export function MapCanvas({
       })
     }
 
-    const fitPad: L.PointExpression = [48, 52]
     const fitLine = () => {
-      const size = map.getSize()
-      if (size.x < 8 || size.y < 8) return
-      const points = [...polyline, ...dashes.flat()]
-      if (points.length === 0) return
-      const first = points[0]
-      if (!first) return
-      const bounds = L.latLngBounds([first.lat, first.lng], [first.lat, first.lng])
-      points.forEach((point) => bounds.extend([point.lat, point.lng]))
-      map.fitBounds(bounds, { padding: fitPad })
+      fitMapTo(map, [...polyline, ...dashes.flat()])
     }
     fitRef.current = fitLine
     fitLine()
@@ -331,8 +315,7 @@ export function MapCanvas({
         return
       }
       stops.forEach((item) => {
-        const place = placeById(item.placeId)
-        const point = bookingPoint(item, place, polyline)
+        const point = bookingStopPoint(item, polyline)
         L.marker([point.lat, point.lng], {
           icon: bookingIcon(item),
           keyboard: false,
@@ -399,6 +382,14 @@ export function MapCanvas({
     }
   }, [you])
 
+  const zoomToWalk = (end: WalkFocusEnd) => {
+    const map = mapRef.current
+    if (!map) return
+    const fit = () => fitMapTo(map, walkFocusPoints(stops, polyline, end), 18)
+    fitRef.current = fit
+    fit()
+  }
+
   return (
     <>
       <div ref={hostRef} className="map-canvas" />
@@ -415,7 +406,23 @@ export function MapCanvas({
             />
           </svg>
         </button>
-      ) : null}
+      ) : (
+        <div className="map-focus">
+          <button type="button" className="map-focus-btn" onClick={() => zoomToWalk('pickup')} aria-label="Zoom to pickup">
+            <span className="origin-dot origin-dot-pickup" aria-hidden />
+            Pickup
+          </button>
+          <button
+            type="button"
+            className="map-focus-btn"
+            onClick={() => zoomToWalk('dropoff')}
+            aria-label="Zoom to dropoff"
+          >
+            <span className="origin-dot origin-dot-dropoff" aria-hidden />
+            Dropoff
+          </button>
+        </div>
+      )}
     </>
   )
 }

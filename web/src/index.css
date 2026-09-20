@@ -1207,6 +1207,35 @@ button {
   height: 16px;
 }
 
+.map-focus {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 500;
+  display: grid;
+  gap: 8px;
+}
+
+.map-focus-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  color: #1c2129;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(18, 21, 26, 0.16);
+  cursor: pointer;
+}
+
+.map-focus-btn .origin-dot {
+  flex: 0 0 16px;
+}
+
 .route-legend {
   display: grid;
   gap: 6px;

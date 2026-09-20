@@ -211,6 +211,40 @@ describe('keepOwnMatch', () => {
   it('尚未成交則用新檔', () => {
     expect(keepOwnMatch(collecting, settled, 'Yu')).toBe(settled)
   })
+
+  it('新 collecting 成交且起訖相同則吃新檔', () => {
+    const waiting: MatchRecord = {
+      ...collecting,
+      joins: [
+        {
+          username: 'Yu',
+          demand: rider('Yu').demand,
+          routePage: rider('Yu').routePage,
+        },
+      ],
+      riders: [],
+    }
+    expect(keepOwnMatch(waiting, settled, 'Yu')).toBe(settled)
+  })
+
+  it('自己已在新 collecting 時不吃舊成交', () => {
+    const waiting: MatchRecord = {
+      ...collecting,
+      joins: [
+        {
+          username: 'Yu',
+          demand: rider('Yu').demand,
+          routePage: {
+            ...rider('Yu').routePage,
+            dropoff: { id: 'new-d', name: 'New D', address: '', lat: 24.79, lng: 120.99 },
+            notes: 'new dropoff run',
+          },
+        },
+      ],
+      riders: [],
+    }
+    expect(keepOwnMatch(waiting, settled, 'Yu')).toBe(waiting)
+  })
 })
 
 describe('THEATER_LINE_MS', () => {

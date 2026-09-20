@@ -135,9 +135,9 @@ export const POSTER_RIDERS: Record<RiderId, RiderDemand> = {
     name: 'Yang',
     title: 'Mr.',
     rawText:
-      'Pickup at Guohua Street, dropoff at NYCU Student Center. I do not want a long detour. I can walk to a nearby meetup.',
-    originId: 'hsinchuGuohua',
-    destinationId: 'nycuStudent',
+      'Pickup at Hsinchu Railway Station, dropoff at NTHU Gymnasium. I do not want a long detour. I can walk to a nearby meetup.',
+    originId: 'hsinchuStation',
+    destinationId: 'nthuGym',
     latestArrival: '07:50',
     maxWaitMin: 8,
     maxWalkMin: 10,

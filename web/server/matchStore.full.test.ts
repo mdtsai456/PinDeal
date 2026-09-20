@@ -42,7 +42,7 @@ describe('matchStore 滿員與再加入', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('collecting 已有 A/B/C/D 時 flush 先成交，團員再 join 回原檔', async () => {
+  it('collecting 已有 A/B/C/D 時 flush 先成交，團員再 join 開新團', async () => {
     const lastJoinAt = '2026-09-20T00:00:00.000Z'
     writeFileSync(
       filePath,
@@ -60,12 +60,14 @@ describe('matchStore 滿員與再加入', () => {
     expect(['settled', 'solo']).toContain(flushed.status)
     expect(flushed.riders).toHaveLength(4)
     expect(readMatch(filePath).status).toBe(flushed.status)
-    const again = await joinMatch(filePath, joinBody('D'))
-    expect(again.status).toBe(flushed.status)
-    expect(again.riders).toHaveLength(4)
+    const again = await joinMatch(filePath, joinBody('D'), { nowMs: Date.parse(lastJoinAt) })
+    expect(again.status).toBe('collecting')
+    expect(again.joins).toHaveLength(1)
+    expect(again.joins[0]?.username).toBe('Yang')
+    expect(again.riders).toEqual([])
   })
 
-  it('已成交團員再 join 回原檔，不報 match_full', async () => {
+  it('已成交團員再 join 開新團，不報 match_full', async () => {
     const four = runMatch(
       (['A', 'B', 'C', 'D'] as const).map((id) => ({
         username: usernameForRider(id),
@@ -74,9 +76,10 @@ describe('matchStore 滿員與再加入', () => {
       })),
     )
     writeFileSync(filePath, JSON.stringify(four))
-    const again = await joinMatch(filePath, joinBody('A'))
-    expect(again.status).toBe(four.status)
-    expect(again.riders).toHaveLength(4)
-    expect(again.riders.map((rider) => rider.username)).toEqual(four.riders.map((rider) => rider.username))
+    const again = await joinMatch(filePath, joinBody('A'), { nowMs: Date.parse('2026-09-20T00:00:00.000Z') })
+    expect(again.status).toBe('collecting')
+    expect(again.joins).toHaveLength(1)
+    expect(again.joins[0]?.username).toBe('Yu')
+    expect(again.riders).toEqual([])
   })
 })

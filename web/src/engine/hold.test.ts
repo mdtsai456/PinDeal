@@ -5,8 +5,8 @@ const T0 = Date.parse('2026-09-20T00:00:00.000Z')
 const AT = '2026-09-20T00:00:00.000Z'
 
 describe('HOLD_IDLE_MS', () => {
-  it('固定 15 秒', () => {
-    expect(HOLD_IDLE_MS).toBe(15_000)
+  it('固定 5 秒', () => {
+    expect(HOLD_IDLE_MS).toBe(5_000)
   })
 })
 
@@ -15,17 +15,17 @@ describe('holdExpired', () => {
     expect(holdExpired(0, AT, T0 + 20_000)).toBe(false)
   })
 
-  it('1 人在 14999ms 不到期', () => {
-    expect(holdExpired(1, AT, T0 + 14_999)).toBe(false)
+  it('1 人在 4999ms 不到期', () => {
+    expect(holdExpired(1, AT, T0 + 4_999)).toBe(false)
   })
 
-  it('1 人在 15000ms 到期', () => {
-    expect(holdExpired(1, AT, T0 + 15_000)).toBe(true)
+  it('1 人在 5000ms 到期', () => {
+    expect(holdExpired(1, AT, T0 + 5_000)).toBe(true)
   })
 
-  it('2／3 人同樣在 15000ms 到期', () => {
-    expect(holdExpired(2, AT, T0 + 15_000)).toBe(true)
-    expect(holdExpired(3, AT, T0 + 15_000)).toBe(true)
+  it('2／3 人同樣在 5000ms 到期', () => {
+    expect(holdExpired(2, AT, T0 + 5_000)).toBe(true)
+    expect(holdExpired(3, AT, T0 + 5_000)).toBe(true)
   })
 
   it('4 人立刻到期', () => {
@@ -44,12 +44,12 @@ describe('holdRemainingMs', () => {
     expect(holdRemainingMs(0, AT, T0)).toBe(0)
   })
 
-  it('1 人在 14999ms 剩 1ms', () => {
-    expect(holdRemainingMs(1, AT, T0 + 14_999)).toBe(1)
+  it('1 人在 4999ms 剩 1ms', () => {
+    expect(holdRemainingMs(1, AT, T0 + 4_999)).toBe(1)
   })
 
   it('到期後下限 0', () => {
-    expect(holdRemainingMs(1, AT, T0 + 15_000)).toBe(0)
+    expect(holdRemainingMs(1, AT, T0 + 5_000)).toBe(0)
     expect(holdRemainingMs(2, AT, T0 + 20_000)).toBe(0)
   })
 
@@ -64,7 +64,7 @@ describe('holdRemainingMs', () => {
 
 describe('holdWaitCopy', () => {
   it('1 人用獨乘句', () => {
-    expect(holdWaitCopy(1, 15)).toBe('Solo taxi in 15s if no one joins.')
+    expect(holdWaitCopy(1, 5)).toBe('Solo taxi in 5s if no one joins.')
     expect(holdWaitCopy(0, 8)).toBe('Solo taxi in 8s if no one joins.')
   })
 
@@ -76,10 +76,10 @@ describe('holdWaitCopy', () => {
 
 describe('holdWaitLine', () => {
   it('1 人用 ceil 秒數寫獨乘句', () => {
-    expect(holdWaitLine(1, AT, T0 + 1)).toBe('Solo taxi in 15s if no one joins.')
+    expect(holdWaitLine(1, AT, T0 + 1)).toBe('Solo taxi in 5s if no one joins.')
   })
 
   it('2 人用 ceil 秒數寫配對句', () => {
-    expect(holdWaitLine(2, AT, T0 + 3_000)).toBe('Match starts in 12s if no one else joins.')
+    expect(holdWaitLine(2, AT, T0 + 3_000)).toBe('Match starts in 2s if no one else joins.')
   })
 })

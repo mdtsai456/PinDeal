@@ -1,4 +1,4 @@
-export const HOLD_IDLE_MS = 15_000
+export const HOLD_IDLE_MS = 5_000
 
 export function holdExpired(
   joinCount: number,

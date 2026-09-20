@@ -116,6 +116,33 @@ export function keepOwnMatch(
   incoming: MatchRecord,
   username: Username,
 ): MatchRecord {
+  if (current?.status === 'collecting' && current.joins.some((join) => join.username === username)) {
+    switch (incoming.status) {
+      case 'collecting':
+        return incoming
+      case 'settled':
+      case 'solo':
+        return ownStopsMatchJoin(current, incoming, username) ? incoming : current
+      default: {
+        const _exhaustive: never = incoming.status
+        return _exhaustive
+      }
+    }
+  }
   if (current && isMatchReady(current, username)) return current
   return incoming
+}
+
+function ownStopsMatchJoin(
+  current: MatchRecord,
+  incoming: MatchRecord,
+  username: Username,
+): boolean {
+  const join = current.joins.find((item) => item.username === username)
+  const me = ownRider(incoming, username)
+  if (!join || !me) return false
+  return (
+    join.routePage.pickup.id === me.routePage.pickup.id &&
+    join.routePage.dropoff.id === me.routePage.dropoff.id
+  )
 }

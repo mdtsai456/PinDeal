@@ -184,7 +184,7 @@ describe('matchStore', () => {
     expect(readMatch(filePath).lastJoinAt).toBe(isoAt(T0))
   })
 
-  it('四人團已在檔內時，團員再 join 回原檔，不報 match_full', async () => {
+  it('已成交的同一帳號再 join 開新團，不報 match_full', async () => {
     const four = runMatch(
       (['A', 'B', 'C', 'D'] as const).map((id) => ({
         username: usernameForRider(id),
@@ -193,10 +193,15 @@ describe('matchStore', () => {
       })),
     )
     writeFileSync(filePath, JSON.stringify(four))
-    const again = await joinMatch(filePath, joinBody('A'))
-    expect(again.status).toBe(four.status)
-    expect(again.riders).toHaveLength(4)
-    expect(again.riders.map((rider) => rider.username)).toEqual(four.riders.map((rider) => rider.username))
+    const again = joinBody('A')
+    again.routePage = { ...again.routePage, notes: 'new dropoff run' }
+    const record = await joinMatch(filePath, again, { nowMs: T0 })
+    expect(record.status).toBe('collecting')
+    expect(record.riders).toEqual([])
+    expect(record.joins).toHaveLength(1)
+    expect(record.joins[0]?.username).toBe('Yu')
+    expect(record.joins[0]?.routePage.notes).toBe('new dropoff run')
+    expect(record.lastJoinAt).toBe(isoAt(T0))
   })
 
   it('已 settled 再 join 開新團，只帶這一筆', async () => {
@@ -304,21 +309,21 @@ describe('matchStore', () => {
     expect(called).toBe(false)
   })
 
-  it('t=0 join Yu，t=14999 flush 仍 collecting', async () => {
+  it('t=0 join Yu，t=4999 flush 仍 collecting', async () => {
     await joinMatch(filePath, joinBody('A'), { nowMs: T0 })
-    const record = await flushHold(filePath, { nowMs: T0 + 14_999 })
+    const record = await flushHold(filePath, { nowMs: T0 + 4_999 })
     expect(record.status).toBe('collecting')
     expect(record.joins).toHaveLength(1)
     expect(record.riders).toEqual([])
     expect(record.lastJoinAt).toBe(isoAt(T0))
   })
 
-  it('t=0 join Yu，t=15000 flush 成一人 solo，可進 Pay', async () => {
+  it('t=0 join Yu，t=5000 flush 成一人 solo，可進 Pay', async () => {
     await joinMatch(filePath, joinBody('A'), { nowMs: T0 })
     const solo = runMatch([
       { username: 'Yu', demand: cloneRider('A'), routePage: pageFromDemand(cloneRider('A')) },
     ])
-    const record = await flushHold(filePath, { nowMs: T0 + 15_000 })
+    const record = await flushHold(filePath, { nowMs: T0 + 5_000 })
     expect(record.status).toBe('solo')
     expect(record.riders).toHaveLength(1)
     expect(record.riders[0]?.username).toBe('Yu')
@@ -327,16 +332,16 @@ describe('matchStore', () => {
     expect(isMatchReady(record, 'Yu')).toBe(true)
   })
 
-  it('Yu 後 Lin 在 t=1000，t=16000 flush 對兩人 runMatch', async () => {
+  it('Yu 後 Lin 在 t=1000，t=6000 flush 對兩人 runMatch', async () => {
     await joinMatch(filePath, joinBody('A'), { nowMs: T0 })
     await joinMatch(filePath, joinBody('B'), { nowMs: T0 + 1000 })
     const engine = runMatch([
       { username: 'Yu', demand: cloneRider('A'), routePage: pageFromDemand(cloneRider('A')) },
       { username: 'Lin', demand: cloneRider('B'), routePage: pageFromDemand(cloneRider('B')) },
     ])
-    const stillOpen = await flushHold(filePath, { nowMs: T0 + 1000 + 14_999 })
+    const stillOpen = await flushHold(filePath, { nowMs: T0 + 1000 + 4_999 })
     expect(stillOpen.status).toBe('collecting')
-    const record = await flushHold(filePath, { nowMs: T0 + 16_000 })
+    const record = await flushHold(filePath, { nowMs: T0 + 6_000 })
     expect(record.status).toBe(engine.status)
     expect(['settled', 'solo']).toContain(record.status)
     expect(record.riders).toHaveLength(2)
@@ -344,13 +349,13 @@ describe('matchStore', () => {
     expect(record.riders[0]?.finalFare).toBe(engine.riders[0]?.finalFare)
   })
 
-  it('圈不合不重設時鐘，t=15000 flush 仍只結 Yu', async () => {
+  it('圈不合不重設時鐘，t=5000 flush 仍只結 Yu', async () => {
     const first = await joinMatch(filePath, joinBody('A'), { nowMs: T0 })
     await expect(joinMatch(filePath, farJoin('B'), { nowMs: T0 + 4000 })).rejects.toMatchObject({
       error: 'walk_circles_miss',
     })
     expect(readMatch(filePath).lastJoinAt).toBe(first.lastJoinAt)
-    const record = await flushHold(filePath, { nowMs: T0 + 15_000 })
+    const record = await flushHold(filePath, { nowMs: T0 + 5_000 })
     expect(record.status).toBe('solo')
     expect(record.riders).toHaveLength(1)
     expect(record.riders[0]?.username).toBe('Yu')
@@ -365,6 +370,40 @@ describe('matchStore', () => {
     expect(chiang.joins[0]?.username).toBe('Chiang')
     expect(chiang.riders).toEqual([])
     expect(readMatch(filePath).joins.map((join) => join.username)).toEqual(['Chiang'])
+  })
+
+  it('flushHold 用 routePage 記住 OSM 地點後可 settle', async () => {
+    const osmDrop = {
+      id: 'osm-228325815',
+      name: 'National Tsing Hua University',
+      address: 'Guangfu Rd, East Dist, Hsinchu',
+      lat: 24.7916987,
+      lng: 120.9924295,
+    }
+    const demand = { ...cloneRider('D'), destinationId: osmDrop.id }
+    writeFileSync(
+      filePath,
+      JSON.stringify({
+        id: 'current',
+        status: 'collecting',
+        adopted: 'solo',
+        joins: [
+          {
+            username: 'Yang',
+            demand,
+            routePage: pageFromDemand(demand, placeById(demand.originId), osmDrop),
+          },
+        ],
+        riders: [],
+        sharePlan: null,
+        lastJoinAt: isoAt(T0),
+      }),
+    )
+    const record = await flushHold(filePath, { nowMs: T0 + 5_000 })
+    expect(record.status).toBe('solo')
+    expect(record.riders).toHaveLength(1)
+    expect(record.riders[0]?.username).toBe('Yang')
+    expect(placeById(osmDrop.id).name).toBe('National Tsing Hua University')
   })
 
   it('4 人 collecting 舊檔 flush 先成交', async () => {

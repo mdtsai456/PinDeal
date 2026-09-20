@@ -13,6 +13,7 @@ import { holdExpired } from '../src/engine/hold.ts'
 import { AGENT_SYSTEM_PROMPT, agentUserPromptAdopted } from '../src/engine/prompts.ts'
 import type { MatchJoinBody } from '../src/engine/routePage.ts'
 import { planShareRoute } from '../src/engine/shareRoute.ts'
+import { rememberPlace } from '../src/geo.ts'
 import { rewriteMatchTheaters, type TheaterRewriteInput } from './theaterLlm.ts'
 
 export type TheaterRewriter = (
@@ -110,20 +111,10 @@ export async function joinMatch(
   const incoming = asJoinBody(body)
   const current = await flushHold(filePath, options)
   const alreadyIn = memberNames(current).includes(incoming.username)
-  if (alreadyIn) {
-    switch (current.status) {
-      case 'settled':
-      case 'solo':
-        return current
-      case 'collecting':
-        return addToCollecting(filePath, current, incoming, options)
-      default: {
-        const _exhaustive: never = current.status
-        return _exhaustive
-      }
-    }
+  if (alreadyIn && current.status === 'collecting') {
+    return addToCollecting(filePath, current, incoming, options)
   }
-  if (memberCount(current) >= 4) {
+  if (!alreadyIn && memberCount(current) >= 4) {
     throw new JoinMatchError('match_full')
   }
 
@@ -177,6 +168,7 @@ async function settle(
   joins: MatchJoinBody[],
   options: JoinMatchOptions,
 ): Promise<MatchRecord> {
+  rememberJoinPlaces(joins)
   const record = runMatch(joins.map(toSeed))
   const next = await applyTheaterRewrite(record, options)
   writeMatch(filePath, next)
@@ -255,6 +247,13 @@ function memberCount(record: MatchRecord): number {
       const _exhaustive: never = record.status
       return _exhaustive
     }
+  }
+}
+
+function rememberJoinPlaces(joins: MatchJoinBody[]): void {
+  for (const join of joins) {
+    rememberPlace(join.routePage.pickup)
+    rememberPlace(join.routePage.dropoff)
   }
 }
 

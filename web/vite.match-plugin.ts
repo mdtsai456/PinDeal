@@ -85,7 +85,9 @@ export function matchPlugin(apiKey: string): Plugin {
           return
         }
         if (url === '/api/match' && req.method === 'GET') {
-          void flushHold(matchFile, { apiKey }).then((record) => sendJson(res, 200, record))
+          void flushHold(matchFile, { apiKey })
+            .then((record) => sendJson(res, 200, record))
+            .catch(() => sendJson(res, 500, { error: 'match_settle_failed' }))
           return
         }
         if (url === '/api/match/reset' && req.method === 'POST') {

@@ -127,7 +127,7 @@ describe('judgeThread collecting', () => {
     const sys = judgeThread(record, nowMs).find((block) => block.kind === 'sys')
     expect(sys?.kind).toBe('sys')
     expect(sys && sys.kind === 'sys' ? sys.text : '').toBe(
-      'Waiting for nearby riders. In the room: Agent A · Agent B. Hold 12s.',
+      'Waiting for nearby riders. In the room: Agent A · Agent B. Hold 2s.',
     )
   })
 })
